@@ -1,7 +1,7 @@
 {
   "name": "XiYang Mail",
   "short_name": "XiYang",
-  "description": "夕阳临时邮箱服务",
+  "description": "夕阳临时账号服务",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
