@@ -8,11 +8,11 @@ import { Providers } from "./providers";
 import { FloatMenu } from "@/components/float-menu";
 
 export const metadata: Metadata = {
-  title: "XiYang Mail - 夕阳临时邮箱服务",
+  title: "XiYang Mail - 夕阳邮箱服务",
   description:
-    "安全、快速、一次性的临时邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
+    "安全、快速、一次性的邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
   keywords: [
-    "临时邮箱",
+    "邮箱服务",
     "一次性邮箱",
     "匿名邮箱",
     "隐私保护",
@@ -21,7 +21,6 @@ export const metadata: Metadata = {
     "自动过期",
     "安全邮箱",
     "注册验证",
-    "临时账号",
     "夕阳邮箱",
     "电子邮件",
     "隐私安全",
@@ -43,16 +42,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "zh_CN",
     url: "https://xiyang.app",
-    title: "XiYang Mail - 夕阳临时邮箱服务",
+    title: "XiYang Mail - 夕阳邮箱服务",
     description:
-      "安全、快速、一次性的临时邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
+      "安全、快速、一次性的邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
     siteName: "XiYang Mail",
   },
   twitter: {
     card: "summary_large_image",
-    title: "XiYang Mail - 夕阳临时邮箱服务",
+    title: "XiYang Mail - 夕阳邮箱服务",
     description:
-      "安全、快速、一次性的临时邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
+      "安全、快速、一次性的邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
   },
   manifest: "/manifest.json",
   icons: [{ rel: "apple-touch-icon", url: "/icons/icon-192x192.png" }],
