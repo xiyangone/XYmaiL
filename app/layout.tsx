@@ -54,9 +54,9 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   icons: [
-    { rel: "icon", url: "/favicon.ico?v=20250914-2" },
-    { rel: "shortcut icon", url: "/favicon.ico?v=20250914-2" },
-    { rel: "apple-touch-icon", url: "/icons/icon-192x192.png?v=20250914-2" },
+    { rel: "icon", url: "/favicon.ico" },
+    { rel: "shortcut icon", url: "/favicon.ico" },
+    { rel: "apple-touch-icon", url: "/icons/icon-192x192.png" },
   ],
 };
 
