@@ -1,11 +1,11 @@
 {
-  "name": "MoeMail",
-  "short_name": "MoeMail",
-  "description": "萌萌哒临时邮箱服务",
+  "name": "XiYang Mail",
+  "short_name": "XiYang",
+  "description": "夕阳临时邮箱服务",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#826DD9",
+  "theme_color": "#FF6B35",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -20,4 +20,4 @@
       "purpose": "any maskable"
     }
   ]
-} 
+}

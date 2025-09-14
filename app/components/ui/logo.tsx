@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+import Link from "next/link";
 
 export function Logo() {
   return (
-    <Link 
+    <Link
       href="/"
       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
     >
@@ -18,48 +18,61 @@ export function Logo() {
             xmlns="http://www.w3.org/2000/svg"
             className="text-primary"
           >
-            {/* 信封主体 */}
-            <path
-              d="M4 8h24v16H4V8z"
-              className="fill-primary/20"
+            {/* 夕阳背景圆形 */}
+            <circle
+              cx="16"
+              cy="16"
+              r="12"
+              className="fill-gradient-to-br from-orange-400 to-red-500"
+              fill="url(#sunsetGradient)"
             />
-            
-            {/* 信封边框 */}
+
+            {/* 夕阳渐变定义 */}
+            <defs>
+              <linearGradient
+                id="sunsetGradient"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" stopColor="#FF6B35" />
+                <stop offset="50%" stopColor="#F7931E" />
+                <stop offset="100%" stopColor="#FF4500" />
+              </linearGradient>
+            </defs>
+
+            {/* 信封轮廓 */}
             <path
-              d="M4 8h24v2H4V8zM4 22h24v2H4v-2z"
-              className="fill-primary"
+              d="M6 10h20v12H6V10z"
+              className="fill-white/90 stroke-white stroke-1"
             />
-            
-            {/* @ 符号 */}
+
+            {/* 信封折线 */}
             <path
-              d="M14 12h4v4h-4v-4zM12 14h2v4h-2v-4zM18 14h2v4h-2v-4zM14 18h4v2h-4v-2z"
-              className="fill-primary"
-            />
-            
-            {/* 折线装饰 */}
-            <path
-              d="M4 8l12 8 12-8"
-              className="stroke-primary stroke-2"
+              d="M6 10l10 6 10-6"
+              className="stroke-orange-600 stroke-2"
               fill="none"
             />
-            
-            {/* 装饰点 */}
+
+            {/* @ 符号 */}
             <path
-              d="M8 18h2v2H8v-2zM22 18h2v2h-2v-2z"
-              className="fill-primary/60"
+              d="M13 14h6v4h-6v-4zM11 16h2v4h-2v-4zM19 16h2v4h-2v-4zM13 20h6v1h-6v-1z"
+              className="fill-orange-600"
             />
-            
-            {/* 底部装饰线 */}
+
+            {/* 夕阳光芒装饰 */}
             <path
-              d="M8 14h2v2H8v-2zM22 14h2v2h-2v-2z"
-              className="fill-primary/40"
+              d="M16 2v4M16 26v4M2 16h4M26 16h4M6.34 6.34l2.83 2.83M22.83 22.83l2.83 2.83M6.34 25.66l2.83-2.83M22.83 9.17l2.83-2.83"
+              className="stroke-orange-400 stroke-1"
+              strokeLinecap="round"
             />
           </svg>
         </div>
       </div>
-      <span className="font-bold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
-        MoeMail
+      <span className="font-bold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-red-600">
+        XiYang
       </span>
     </Link>
-  )
+  );
 }
