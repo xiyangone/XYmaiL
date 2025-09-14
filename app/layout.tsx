@@ -10,7 +10,7 @@ import { FloatMenu } from "@/components/float-menu";
 export const metadata: Metadata = {
   title: "XiYang Mail - 夕阳邮箱服务",
   description:
-    "安全、快速、一次性的邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
+    "安全、快速、一次性的临时邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
   keywords: [
     "邮箱服务",
     "一次性邮箱",
@@ -44,14 +44,14 @@ export const metadata: Metadata = {
     url: "https://xiyang.app",
     title: "XiYang Mail - 夕阳邮箱服务",
     description:
-      "安全、快速、一次性的邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
+      "安全、快速、一次性的临时邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
     siteName: "XiYang Mail",
   },
   twitter: {
     card: "summary_large_image",
     title: "XiYang Mail - 夕阳邮箱服务",
     description:
-      "安全、快速、一次性的邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
+      "安全、快速、一次性的临时邮箱地址，保护您的隐私，远离垃圾邮件。支持即时收件，到期自动失效。",
   },
   manifest: "/manifest.json",
   icons: [{ rel: "apple-touch-icon", url: "/icons/icon-192x192.png" }],
