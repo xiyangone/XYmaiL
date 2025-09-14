@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="public/icons/icon-192x192.png" alt="XiYang Mail Logo" width="100" height="100">
+  <img src="public/icons/svg/sanhuamao-logo.svg" alt="XiYang Mail Logo" width="100" height="100">
   <h1 align="center">XiYang Mail</h1>
 </p>
 
 <p align="center">
-  一个基于 NextJS + Cloudflare 技术栈构建的夕阳临时邮箱服务🎉
+  一个基于 NextJS + Cloudflare 技术栈构建的夕阳邮箱服务🎉
 </p>
 
 <p align="center">

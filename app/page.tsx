@@ -25,7 +25,7 @@ export default async function Home() {
                   </span>
                 </h1>
                 <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 tracking-wide">
-                  夕阳临时邮箱服务
+                  夕阳邮箱服务
                 </p>
               </div>
 
