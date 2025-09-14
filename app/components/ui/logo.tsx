@@ -8,12 +8,12 @@ export function Logo() {
       href="/"
       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
     >
-      <div className="relative w-8 h-8">
+      <div className="relative w-6 h-6">
         <img
           src="/icons/svg/sanhuamao-logo.svg"
           alt="XiYang Logo"
-          width={32}
-          height={32}
+          width={24}
+          height={24}
           className="w-full h-full object-contain"
         />
       </div>
