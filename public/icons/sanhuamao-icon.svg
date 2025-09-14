@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 夕阳背景圆形 -->
+  <circle cx="256" cy="256" r="240" fill="url(#sunsetGradient)" />
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="sunsetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B35" />
+      <stop offset="30%" stop-color="#F7931E" />
+      <stop offset="70%" stop-color="#FF4500" />
+      <stop offset="100%" stop-color="#DC143C" />
+    </linearGradient>
+    <linearGradient id="catGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#F5F5F5" />
+      <stop offset="100%" stop-color="#E8E8E8" />
+    </linearGradient>
+    <linearGradient id="orangePattern" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8C42" />
+      <stop offset="100%" stop-color="#FF6B35" />
+    </linearGradient>
+    <linearGradient id="blackPattern" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2C2C2C" />
+      <stop offset="100%" stop-color="#1A1A1A" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 三花猫主体 -->
+  <g transform="translate(256, 256)">
+    <!-- 猫头 -->
+    <ellipse cx="0" cy="-20" rx="80" ry="70" fill="url(#catGradient)" stroke="#FF6B35" stroke-width="3"/>
+    
+    <!-- 猫耳朵 -->
+    <path d="M-60 -70 L-40 -100 L-20 -80 Z" fill="url(#catGradient)" stroke="#FF6B35" stroke-width="2"/>
+    <path d="M20 -80 L40 -100 L60 -70 Z" fill="url(#catGradient)" stroke="#FF6B35" stroke-width="2"/>
+    
+    <!-- 三花猫花纹 - 橙色斑块 -->
+    <ellipse cx="-35" cy="-40" rx="20" ry="15" fill="url(#orangePattern)" opacity="0.8"/>
+    <ellipse cx="25" cy="-30" rx="25" ry="18" fill="url(#orangePattern)" opacity="0.8"/>
+    <ellipse cx="-15" cy="10" rx="18" ry="12" fill="url(#orangePattern)" opacity="0.8"/>
+    
+    <!-- 三花猫花纹 - 黑色斑块 -->
+    <ellipse cx="40" cy="-55" rx="15" ry="12" fill="url(#blackPattern)" opacity="0.7"/>
+    <ellipse cx="-50" cy="-10" rx="12" ry="10" fill="url(#blackPattern)" opacity="0.7"/>
+    <ellipse cx="10" cy="15" rx="20" ry="8" fill="url(#blackPattern)" opacity="0.7"/>
+    
+    <!-- 猫眼睛 -->
+    <ellipse cx="-25" cy="-25" rx="8" ry="12" fill="#4A90E2"/>
+    <ellipse cx="25" cy="-25" rx="8" ry="12" fill="#4A90E2"/>
+    <ellipse cx="-25" cy="-25" rx="3" ry="8" fill="#000000"/>
+    <ellipse cx="25" cy="-25" rx="3" ry="8" fill="#000000"/>
+    
+    <!-- 猫鼻子 -->
+    <path d="M0 -5 L-5 5 L5 5 Z" fill="#FF69B4"/>
+    
+    <!-- 猫嘴巴 -->
+    <path d="M0 5 Q-10 15 -20 10" stroke="#FF6B35" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M0 5 Q10 15 20 10" stroke="#FF6B35" stroke-width="2" fill="none" stroke-linecap="round"/>
+    
+    <!-- 猫胡须 -->
+    <line x1="-50" y1="-10" x2="-80" y2="-15" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-50" y1="0" x2="-80" y2="0" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+    <line x1="-50" y1="10" x2="-80" y2="5" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="-10" x2="80" y2="-15" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="0" x2="80" y2="0" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="10" x2="80" y2="5" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- 邮件元素 - 小信封 -->
+  <g transform="translate(256, 380)">
+    <rect x="-30" y="-15" width="60" height="30" rx="4" fill="url(#catGradient)" stroke="#FF6B35" stroke-width="2"/>
+    <path d="M-30 -15 L0 5 L30 -15" stroke="#FF4500" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- @ 符号 -->
+    <circle cx="0" cy="0" r="8" fill="none" stroke="#FF4500" stroke-width="2"/>
+    <circle cx="0" cy="0" r="4" fill="#FF4500"/>
+  </g>
+  
+  <!-- 装饰性光芒 -->
+  <g stroke="#FFD700" stroke-width="3" stroke-linecap="round" opacity="0.8">
+    <line x1="256" y1="40" x2="256" y2="70" />
+    <line x1="256" y1="442" x2="256" y2="472" />
+    <line x1="40" y1="256" x2="70" y2="256" />
+    <line x1="442" y1="256" x2="472" y2="256" />
+    <line x1="108" y1="108" x2="130" y2="130" />
+    <line x1="382" y1="382" x2="404" y2="404" />
+    <line x1="108" y1="404" x2="130" y2="382" />
+    <line x1="382" y1="130" x2="404" y2="108" />
+  </g>
+  
+  <!-- 装饰性小星星 -->
+  <g fill="#FFD700" opacity="0.6">
+    <path d="M150 120 L155 130 L165 130 L157 137 L160 147 L150 140 L140 147 L143 137 L135 130 L145 130 Z"/>
+    <path d="M380 150 L383 157 L390 157 L385 162 L387 169 L380 165 L373 169 L375 162 L370 157 L377 157 Z"/>
+    <path d="M120 380 L123 387 L130 387 L125 392 L127 399 L120 395 L113 399 L115 392 L110 387 L117 387 Z"/>
+  </g>
+</svg>

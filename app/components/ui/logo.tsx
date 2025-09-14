@@ -19,15 +19,9 @@ export function Logo() {
             className="text-primary"
           >
             {/* 夕阳背景圆形 */}
-            <circle
-              cx="16"
-              cy="16"
-              r="12"
-              className="fill-gradient-to-br from-orange-400 to-red-500"
-              fill="url(#sunsetGradient)"
-            />
+            <circle cx="16" cy="16" r="12" fill="url(#sunsetGradient)" />
 
-            {/* 夕阳渐变定义 */}
+            {/* 渐变定义 */}
             <defs>
               <linearGradient
                 id="sunsetGradient"
@@ -40,33 +34,127 @@ export function Logo() {
                 <stop offset="50%" stopColor="#F7931E" />
                 <stop offset="100%" stopColor="#FF4500" />
               </linearGradient>
+              <linearGradient
+                id="catGradient"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="100%" stopColor="#F0F0F0" />
+              </linearGradient>
             </defs>
 
-            {/* 信封轮廓 */}
-            <path
-              d="M6 10h20v12H6V10z"
-              className="fill-white/90 stroke-white stroke-1"
+            {/* 三花猫头部 */}
+            <ellipse
+              cx="16"
+              cy="14"
+              rx="8"
+              ry="7"
+              fill="url(#catGradient)"
+              stroke="#FF6B35"
+              strokeWidth="0.5"
             />
 
-            {/* 信封折线 */}
+            {/* 猫耳朵 */}
             <path
-              d="M6 10l10 6 10-6"
-              className="stroke-orange-600 stroke-2"
+              d="M10 9 L12 6 L14 8 Z"
+              fill="url(#catGradient)"
+              stroke="#FF6B35"
+              strokeWidth="0.3"
+            />
+            <path
+              d="M18 8 L20 6 L22 9 Z"
+              fill="url(#catGradient)"
+              stroke="#FF6B35"
+              strokeWidth="0.3"
+            />
+
+            {/* 三花猫花纹 */}
+            <ellipse
+              cx="12"
+              cy="12"
+              rx="2"
+              ry="1.5"
+              fill="#FF8C42"
+              opacity="0.8"
+            />
+            <ellipse
+              cx="19"
+              cy="13"
+              rx="2.5"
+              ry="1.8"
+              fill="#FF8C42"
+              opacity="0.8"
+            />
+            <ellipse
+              cx="20"
+              cy="10"
+              rx="1.5"
+              ry="1.2"
+              fill="#2C2C2C"
+              opacity="0.7"
+            />
+            <ellipse
+              cx="11"
+              cy="16"
+              rx="1.2"
+              ry="1"
+              fill="#2C2C2C"
+              opacity="0.7"
+            />
+
+            {/* 猫眼睛 */}
+            <ellipse cx="13" cy="13" rx="1" ry="1.5" fill="#4A90E2" />
+            <ellipse cx="19" cy="13" rx="1" ry="1.5" fill="#4A90E2" />
+            <ellipse cx="13" cy="13" rx="0.4" ry="1" fill="#000000" />
+            <ellipse cx="19" cy="13" rx="0.4" ry="1" fill="#000000" />
+
+            {/* 猫鼻子和嘴巴 */}
+            <path d="M16 15 L15 16 L17 16 Z" fill="#FF69B4" />
+            <path
+              d="M16 16 Q14 18 12 17"
+              stroke="#FF6B35"
+              strokeWidth="0.5"
               fill="none"
-            />
-
-            {/* @ 符号 */}
-            <path
-              d="M13 14h6v4h-6v-4zM11 16h2v4h-2v-4zM19 16h2v4h-2v-4zM13 20h6v1h-6v-1z"
-              className="fill-orange-600"
-            />
-
-            {/* 夕阳光芒装饰 */}
-            <path
-              d="M16 2v4M16 26v4M2 16h4M26 16h4M6.34 6.34l2.83 2.83M22.83 22.83l2.83 2.83M6.34 25.66l2.83-2.83M22.83 9.17l2.83-2.83"
-              className="stroke-orange-400 stroke-1"
               strokeLinecap="round"
             />
+            <path
+              d="M16 16 Q18 18 20 17"
+              stroke="#FF6B35"
+              strokeWidth="0.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+
+            {/* 小信封装饰 */}
+            <rect
+              x="13"
+              y="22"
+              width="6"
+              height="4"
+              rx="0.5"
+              fill="url(#catGradient)"
+              stroke="#FF6B35"
+              strokeWidth="0.3"
+            />
+            <path
+              d="M13 22 L16 24 L19 22"
+              stroke="#FF4500"
+              strokeWidth="0.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <circle
+              cx="16"
+              cy="24"
+              r="1"
+              fill="none"
+              stroke="#FF4500"
+              strokeWidth="0.3"
+            />
+            <circle cx="16" cy="24" r="0.5" fill="#FF4500" />
           </svg>
         </div>
       </div>
