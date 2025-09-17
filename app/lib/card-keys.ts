@@ -225,6 +225,27 @@ export async function cleanupExpiredTempAccounts() {
 }
 
 /**
+ * 清理过期未使用的卡密
+ */
+export async function cleanupExpiredCardKeys() {
+  const db = createDb();
+  const now = new Date();
+
+  // 仅删除“过期且未使用”的卡密，已使用的卡密保留审计痕迹
+  const expired = await db.query.cardKeys.findMany({
+    where: and(lt(cardKeys.expiresAt, now), eq(cardKeys.isUsed, false)),
+  });
+
+  if (expired.length > 0) {
+    await db
+      .delete(cardKeys)
+      .where(and(lt(cardKeys.expiresAt, now), eq(cardKeys.isUsed, false)));
+  }
+
+  return expired.length;
+}
+
+/**
  * 生成批量卡密
  */
 export async function generateBatchCardKeys(

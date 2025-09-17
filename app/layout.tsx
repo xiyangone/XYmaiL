@@ -5,7 +5,6 @@ import type { Metadata, Viewport } from "next";
 import { jetbrains } from "./fonts";
 import "./globals.css";
 import { Providers } from "./providers";
-import { FloatMenu } from "@/components/float-menu";
 
 export const metadata: Metadata = {
   title: "XiYang Mail - 夕阳邮箱服务",
@@ -100,7 +99,6 @@ export default function RootLayout({
         >
           <Providers>{children}</Providers>
           <Toaster />
-          <FloatMenu />
         </ThemeProvider>
       </body>
     </html>

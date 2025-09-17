@@ -15,6 +15,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRolePermission } from "@/hooks/use-role-permission";
@@ -43,6 +53,7 @@ export default function CardKeysPage() {
   const [emailAddresses, setEmailAddresses] = useState("");
   const [expiryDays, setExpiryDays] = useState("7");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [cardKeyToDelete, setCardKeyToDelete] = useState<CardKey | null>(null);
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
   const router = useRouter();
@@ -156,6 +167,7 @@ export default function CardKeysPage() {
         title: "成功",
         description: "卡密删除成功",
       });
+      setCardKeyToDelete(null);
       fetchCardKeys();
     } catch (error) {
       toast({
@@ -288,15 +300,13 @@ export default function CardKeysPage() {
                     <Badge variant={cardKey.isUsed ? "secondary" : "default"}>
                       {cardKey.isUsed ? "已使用" : "未使用"}
                     </Badge>
-                    {!cardKey.isUsed && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteCardKey(cardKey.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCardKeyToDelete(cardKey)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -304,6 +314,33 @@ export default function CardKeysPage() {
           ))}
         </div>
       )}
+      {/* 删除确认对话框 */}
+      <AlertDialog
+        open={!!cardKeyToDelete}
+        onOpenChange={() => setCardKeyToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              {cardKeyToDelete?.isUsed
+                ? "该卡密已被使用，确认删除将同步删除关联的临时账户及其数据，且不可恢复。确定继续？"
+                : "确定要删除该卡密吗？此操作不可恢复。"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() =>
+                cardKeyToDelete && deleteCardKey(cardKeyToDelete.id)
+              }
+            >
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
