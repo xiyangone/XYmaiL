@@ -375,7 +375,21 @@ const pushPagesSecret = () => {
 const deployPages = () => {
   console.log("🚧 Deploying to Cloudflare Pages...");
   try {
-    execSync("pnpm run deploy:pages", { stdio: "inherit" });
+    // 先构建Next.js应用
+    console.log("📦 Building Next.js application...");
+    execSync("pnpm run build", { stdio: "inherit" });
+
+    // 然后构建Cloudflare Pages
+    console.log("🔧 Building for Cloudflare Pages...");
+    execSync("pnpm run build:pages", { stdio: "inherit" });
+
+    // 最后部署到Pages
+    console.log("🚀 Deploying to Cloudflare Pages...");
+    execSync(
+      `pnpm dlx wrangler pages deploy .vercel/output/static --project-name ${PROJECT_NAME} --branch main`,
+      { stdio: "inherit" }
+    );
+
     console.log("✅ Pages deployment completed successfully");
   } catch (error) {
     console.error("❌ Pages deployment failed:", error);
