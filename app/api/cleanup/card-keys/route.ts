@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, checkPermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
-import { cleanupExpiredCardKeys } from "@/lib/card-keys";
+import { cleanupExpiredData } from "@/lib/card-keys";
 
 export const runtime = "edge";
 
@@ -13,10 +13,7 @@ export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "未授权" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
     // 检查权限 - 只有皇帝可以清理卡密
@@ -28,18 +25,17 @@ export async function POST() {
       );
     }
 
-    console.log("[API] 开始手动清理过期卡密");
-    const result = await cleanupExpiredCardKeys();
+    console.log("[API] 开始手动清理过期数据");
+    const result = await cleanupExpiredData();
+
+    const totalDeleted =
+      result.tempAccounts.deletedCount + result.cardKeys.deletedCount;
 
     return NextResponse.json({
       success: true,
-      message: `成功清理 ${result.deletedCount} 个过期卡密`,
-      data: {
-        deletedCount: result.deletedCount,
-        details: result.details,
-      },
+      message: `成功清理 ${result.tempAccounts.deletedCount} 个过期临时账号和 ${result.cardKeys.deletedCount} 个过期卡密`,
+      data: result,
     });
-
   } catch (error) {
     console.error("清理过期卡密失败:", error);
     return NextResponse.json(
@@ -56,19 +52,13 @@ export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "未授权" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
     // 检查权限
     const hasPermission = await checkPermission(PERMISSIONS.MANAGE_CARD_KEYS);
     if (!hasPermission) {
-      return NextResponse.json(
-        { error: "权限不足" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "权限不足" }, { status: 403 });
     }
 
     const { createDb } = await import("@/lib/db");
@@ -85,9 +75,7 @@ export async function GET() {
       .where(lt(cardKeys.expiresAt, now));
 
     // 统计总卡密数量
-    const totalCount = await db
-      .select({ count: count() })
-      .from(cardKeys);
+    const totalCount = await db.select({ count: count() }).from(cardKeys);
 
     return NextResponse.json({
       success: true,
@@ -97,12 +85,8 @@ export async function GET() {
         lastChecked: now.toISOString(),
       },
     });
-
   } catch (error) {
     console.error("获取过期卡密统计失败:", error);
-    return NextResponse.json(
-      { error: "获取统计信息失败" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "获取统计信息失败" }, { status: 500 });
   }
 }
