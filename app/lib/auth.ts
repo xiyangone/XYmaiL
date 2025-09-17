@@ -166,25 +166,7 @@ export const {
   trustHost: true,
   // 临时日志：仅用于排查凭证回调/会话签发问题（部署稳定后可移除或降级）
   logger: {
-    error: (...args) => {
-      console.error("[auth.error]", ...args);
-      // 特别记录 Configuration 错误
-      if (args.some((arg) => String(arg).includes("Configuration"))) {
-        console.error(
-          "[auth.error] 🚨 Configuration错误 - 检查AUTH_SECRET环境变量"
-        );
-        console.error("[auth.error] 当前环境变量状态:", {
-          hasProcessEnvSecret: !!(globalThis as any).process?.env?.AUTH_SECRET,
-          hasRuntimeSecret: (() => {
-            try {
-              return !!(getRequestContext() as any)?.env?.AUTH_SECRET;
-            } catch {
-              return false;
-            }
-          })(),
-        });
-      }
-    },
+    error: (...args) => console.error("[auth.error]", ...args),
     warn: (...args) => console.warn("[auth.warn]", ...args),
     debug: (...args) => console.debug("[auth.debug]", ...args),
   },
