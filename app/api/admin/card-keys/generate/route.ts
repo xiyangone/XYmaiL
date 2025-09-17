@@ -5,7 +5,7 @@ import { generateBatchCardKeys } from "@/lib/card-keys";
 import { z } from "zod";
 import { getRequestContext } from "@cloudflare/next-on-pages";
 import { createDb } from "@/lib/db";
-import { emails, userRoles } from "@/lib/schema";
+import { emails, users, userRoles } from "@/lib/schema";
 import { inArray } from "drizzle-orm";
 
 export const runtime = "edge";
@@ -19,6 +19,7 @@ const generateCardKeysSchema = z.object({
     .min(1, "过期天数必须大于0")
     .max(365, "过期天数不能超过365天")
     .optional(),
+  autoReleaseEmperorOwned: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -47,43 +48,101 @@ export async function POST(request: Request) {
       );
     }
 
-    const { emailAddresses, expiryDays } = validation.data;
+    const { emailAddresses, expiryDays, autoReleaseEmperorOwned } =
+      validation.data as any;
 
-    // 先检查邮箱是否已被其它用户占用（皇帝占用允许通过，其它用户占用直接阻止生成）
+    // 先检查邮箱是否已被占用（皇帝占用允许通过，其它用户占用直接阻止生成），并提供详细占用信息
     const db = createDb();
     const existingEmails = await db.query.emails.findMany({
       where: inArray(emails.address, emailAddresses),
     });
+
+    let warnings: Array<{
+      address: string;
+      userId: string;
+      username?: string;
+      role: string;
+      action?: string;
+    }> = [];
 
     if (existingEmails.length > 0) {
       const ownerIds = Array.from(
         new Set(existingEmails.map((e) => e.userId).filter(Boolean))
       ) as string[];
 
-      const emperorOwnerIds = new Set<string>();
+      // 查询拥有者信息与角色
+      const usersById = new Map<string, { id: string; username?: string }>();
       if (ownerIds.length > 0) {
-        const ownerRoles = await db.query.userRoles.findMany({
-          where: inArray(userRoles.userId, ownerIds),
-          with: { role: true },
+        const ownerUsers = await db.query.users.findMany({
+          where: inArray(users.id, ownerIds),
         });
-        for (const or of ownerRoles) {
-          if (or.role?.name === ROLES.EMPEROR) emperorOwnerIds.add(or.userId);
-        }
+        for (const u of ownerUsers)
+          usersById.set(u.id, { id: u.id, username: (u as any).username });
       }
 
-      const occupiedByOthers = existingEmails
-        .filter((e) => !emperorOwnerIds.has(e.userId!))
-        .map((e) => e.address);
+      const ownerRoles =
+        ownerIds.length > 0
+          ? await db.query.userRoles.findMany({
+              where: inArray(userRoles.userId, ownerIds),
+              with: { role: true },
+            })
+          : [];
+      const emperorOwnerIds = new Set(
+        ownerRoles
+          .filter((or) => or.role?.name === ROLES.EMPEROR)
+          .map((or) => or.userId)
+      );
+
+      const occupiedByOthers = existingEmails.filter(
+        (e) => !emperorOwnerIds.has(e.userId!)
+      );
+      const occupiedByEmperor = existingEmails.filter((e) =>
+        emperorOwnerIds.has(e.userId!)
+      );
 
       if (occupiedByOthers.length > 0) {
+        // 返回更详细的占用信息，便于提示“被谁占用”
+        const occupiedBy = occupiedByOthers.map((e) => ({
+          address: e.address,
+          userId: e.userId!,
+          username: usersById.get(e.userId!)?.username,
+          role: "OTHER",
+        }));
         return NextResponse.json(
           {
             error:
-              "以下邮箱已被其他用户占用，无法生成对应卡密：" +
-              occupiedByOthers.join(", "),
+              "以下邮箱已被其他用户占用，无法生成对应卡密。请先删除这些邮箱后再重试。",
+            occupiedBy,
           },
           { status: 400 }
         );
+      }
+
+      if (occupiedByEmperor.length > 0) {
+        // 皇帝占用：允许继续，但返回 warnings；若启用自动化则先释放
+        if (autoReleaseEmperorOwned) {
+          await db.delete(emails).where(
+            inArray(
+              emails.address,
+              occupiedByEmperor.map((e) => e.address)
+            )
+          );
+          warnings = occupiedByEmperor.map((e) => ({
+            address: e.address,
+            userId: e.userId!,
+            username: usersById.get(e.userId!)?.username,
+            role: "EMPEROR",
+            action: "已自动释放（删除邮箱记录）",
+          }));
+        } else {
+          warnings = occupiedByEmperor.map((e) => ({
+            address: e.address,
+            userId: e.userId!,
+            username: usersById.get(e.userId!)?.username,
+            role: "EMPEROR",
+            action: "激活前需先释放该邮箱",
+          }));
+        }
       }
     }
 
@@ -101,6 +160,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       cardKeys,
+      warnings, // 可能为空数组：返回皇帝占用的邮箱提示或已自动释放的记录
       message: `成功生成 ${cardKeys.length} 个卡密`,
     });
   } catch (error) {

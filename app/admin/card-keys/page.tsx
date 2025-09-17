@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, Trash2, Copy, ArrowLeft } from "lucide-react";
 import {
   Dialog,
@@ -54,6 +55,7 @@ export default function CardKeysPage() {
   const [expiryDays, setExpiryDays] = useState("7");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cardKeyToDelete, setCardKeyToDelete] = useState<CardKey | null>(null);
+  const [autoReleaseEmperorOwned, setAutoReleaseEmperorOwned] = useState(false);
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
   const router = useRouter();
@@ -110,22 +112,45 @@ export default function CardKeysPage() {
         body: JSON.stringify({
           emailAddresses: addresses,
           expiryDays: parseInt(expiryDays),
+          autoReleaseEmperorOwned,
         }),
       });
 
       if (!response.ok) {
-        const data = (await response.json()) as { error: string };
-        throw new Error(data.error);
+        const data = (await response.json()) as {
+          error: string;
+          occupiedBy?: { address: string; username?: string }[];
+        };
+        const detail = data.occupiedBy?.length
+          ? `\n冲突邮箱：` +
+            data.occupiedBy
+              .map(
+                (o) => `${o.address}${o.username ? `（${o.username}）` : ""}`
+              )
+              .join(", ")
+          : "";
+        throw new Error((data.error || "生成卡密失败") + detail);
       }
 
       const data = (await response.json()) as {
         message: string;
         cardKeys: { code: string; emailAddress: string }[];
+        warnings?: { address: string; action?: string }[];
       };
-      toast({
-        title: "成功",
-        description: data.message,
-      });
+      toast({ title: "成功", description: data.message });
+
+      if (data.warnings && data.warnings.length > 0) {
+        const preview = data.warnings
+          .slice(0, 5)
+          .map((w) => `${w.address}${w.action ? `：${w.action}` : ""}`)
+          .join("\n");
+        toast({
+          title: "注意",
+          description: `${data.warnings.length} 个邮箱由皇帝占用。${
+            autoReleaseEmperorOwned ? "已自动释放。" : "激活前需先释放。"
+          }\n${preview}`,
+        });
+      }
 
       // 注意：不再自动下载 TXT，避免浏览器自动下载文件造成干扰
       // 如需导出，请在列表中手动复制
@@ -218,6 +243,16 @@ export default function CardKeysPage() {
             <DialogHeader>
               <DialogTitle>生成卡密</DialogTitle>
               <DialogDescription>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="autoRelease">
+                    若被皇帝占用，自动释放并生成
+                  </Label>
+                  <Switch
+                    id="autoRelease"
+                    checked={autoReleaseEmperorOwned}
+                    onCheckedChange={setAutoReleaseEmperorOwned}
+                  />
+                </div>
                 为指定的邮箱地址生成卡密，每行一个邮箱地址
               </DialogDescription>
             </DialogHeader>
