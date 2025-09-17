@@ -168,15 +168,29 @@ export const {
         },
       },
       async authorize(credentials) {
+        console.log("[AUTH] 卡密登录开始", {
+          cardKey: credentials?.cardKey
+            ? "***" + (credentials.cardKey as string).slice(-4)
+            : "未提供",
+        });
+
         if (!credentials?.cardKey) {
+          console.log("[AUTH] 卡密登录失败: 未提供卡密");
           throw new Error("请输入卡密");
         }
 
         const { cardKey } = credentials;
 
         try {
+          console.log("[AUTH] 开始验证卡密", {
+            cardKey: "***" + (cardKey as string).slice(-4),
+          });
           // 验证并使用卡密
           const result = await activateCardKey(cardKey as string);
+          console.log("[AUTH] 卡密验证成功", {
+            userId: result.userId,
+            emailAddress: result.emailAddress,
+          });
 
           // 获取创建的用户信息
           const db = createDb();
@@ -193,6 +207,10 @@ export const {
             password: undefined,
           };
         } catch (error) {
+          console.log("[AUTH] 卡密验证失败", {
+            error: error instanceof Error ? error.message : "未知错误",
+            stack: error instanceof Error ? error.stack : undefined,
+          });
           throw new Error(
             error instanceof Error ? error.message : "卡密验证失败"
           );

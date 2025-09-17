@@ -149,6 +149,7 @@ export function LoginForm() {
       return;
     }
 
+    console.log("[LOGIN] 开始卡密登录", { cardKey: "***" + cardKey.slice(-4) });
     setLoading(true);
     try {
       const result = await signIn("card-key", {
@@ -156,7 +157,15 @@ export function LoginForm() {
         redirect: false,
       });
 
+      console.log("[LOGIN] NextAuth登录结果", {
+        ok: result?.ok,
+        error: result?.error,
+        status: result?.status,
+        url: result?.url,
+      });
+
       if (result?.error) {
+        console.log("[LOGIN] 卡密登录失败", { error: result.error });
         toast({
           title: "卡密登录失败",
           description: result.error,

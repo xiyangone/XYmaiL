@@ -18,24 +18,40 @@ export function generateCardKeyCode(): string {
  * 验证卡密是否有效
  */
 export async function validateCardKey(code: string) {
+  console.log("[CARD-KEY] 开始验证卡密", { code: "***" + code.slice(-4) });
+
   const db = createDb();
 
   const cardKey = await db.query.cardKeys.findFirst({
     where: eq(cardKeys.code, code),
   });
 
+  console.log("[CARD-KEY] 数据库查询结果", {
+    found: !!cardKey,
+    isUsed: cardKey?.isUsed,
+    expiresAt: cardKey?.expiresAt,
+    emailAddress: cardKey?.emailAddress,
+  });
+
   if (!cardKey) {
+    console.log("[CARD-KEY] 验证失败: 卡密不存在");
     return { valid: false, error: "卡密不存在" };
   }
 
   if (cardKey.isUsed) {
+    console.log("[CARD-KEY] 验证失败: 卡密已被使用");
     return { valid: false, error: "卡密已被使用" };
   }
 
   if (cardKey.expiresAt < new Date()) {
+    console.log("[CARD-KEY] 验证失败: 卡密已过期", {
+      expiresAt: cardKey.expiresAt,
+      now: new Date(),
+    });
     return { valid: false, error: "卡密已过期" };
   }
 
+  console.log("[CARD-KEY] 验证成功");
   return { valid: true, cardKey };
 }
 
@@ -43,14 +59,20 @@ export async function validateCardKey(code: string) {
  * 使用卡密创建临时账号
  */
 export async function activateCardKey(code: string) {
+  console.log("[CARD-KEY] 开始激活卡密", { code: "***" + code.slice(-4) });
+
   const db = createDb();
 
   const validation = await validateCardKey(code);
   if (!validation.valid) {
+    console.log("[CARD-KEY] 激活失败: 验证不通过", { error: validation.error });
     throw new Error(validation.error);
   }
 
   const cardKey = validation.cardKey!;
+  console.log("[CARD-KEY] 卡密验证通过，开始创建用户", {
+    emailAddress: cardKey.emailAddress,
+  });
 
   // 创建临时用户
   const tempUser = await db
@@ -63,13 +85,19 @@ export async function activateCardKey(code: string) {
     .returning();
 
   const userId = tempUser[0].id;
+  console.log("[CARD-KEY] 用户创建成功", {
+    userId,
+    username: tempUser[0].username,
+  });
 
   // 分配临时用户角色
+  console.log("[CARD-KEY] 开始分配角色");
   const tempRole = await db.query.roles.findFirst({
     where: eq(roles.name, ROLES.TEMP_USER),
   });
 
   if (!tempRole) {
+    console.log("[CARD-KEY] 临时用户角色不存在，创建新角色");
     // 如果临时用户角色不存在，创建它
     const [newRole] = await db
       .insert(roles)
@@ -79,10 +107,13 @@ export async function activateCardKey(code: string) {
       })
       .returning();
 
+    console.log("[CARD-KEY] 新角色创建成功", { roleId: newRole.id });
     await assignRoleToUser(db, userId, newRole.id);
   } else {
+    console.log("[CARD-KEY] 使用现有临时用户角色", { roleId: tempRole.id });
     await assignRoleToUser(db, userId, tempRole.id);
   }
+  console.log("[CARD-KEY] 角色分配完成");
 
   // 创建绑定的邮箱地址
   const now = new Date();
@@ -105,6 +136,7 @@ export async function activateCardKey(code: string) {
   });
 
   // 标记卡密为已使用
+  console.log("[CARD-KEY] 标记卡密为已使用");
   await db
     .update(cardKeys)
     .set({
@@ -113,6 +145,12 @@ export async function activateCardKey(code: string) {
       usedAt: now,
     })
     .where(eq(cardKeys.id, cardKey.id));
+
+  console.log("[CARD-KEY] 卡密激活完成", {
+    userId,
+    emailAddress: cardKey.emailAddress,
+    expiresAt: emailExpiresAt,
+  });
 
   return {
     userId,
