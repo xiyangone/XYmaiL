@@ -1,5 +1,12 @@
 import { createDb } from "./db";
-import { cardKeys, tempAccounts, users, emails, roles } from "./schema";
+import {
+  cardKeys,
+  tempAccounts,
+  users,
+  emails,
+  roles,
+  userRoles,
+} from "./schema";
 import { eq, and, lt, gt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { ROLES } from "./permissions";
@@ -70,10 +77,55 @@ export async function activateCardKey(code: string) {
   }
 
   const cardKey = validation.cardKey!;
-  console.log("[CARD-KEY] 卡密验证通过，开始创建用户", {
+  console.log("[CARD-KEY] 卡密验证通过，即将检查邮箱占用情况", {
     emailAddress: cardKey.emailAddress,
   });
 
+  // 0) 冲突检测：邮箱是否已被占用（优先判断 emails 表，再兜底 users.email 唯一约束）
+  const existingEmail = await db.query.emails.findFirst({
+    where: eq(emails.address, cardKey.emailAddress),
+  });
+  if (existingEmail) {
+    let isOwnerEmperor = false;
+    if (existingEmail.userId) {
+      const ownerRoles = await db.query.userRoles.findMany({
+        where: eq(userRoles.userId, existingEmail.userId),
+        with: { role: true },
+      });
+      isOwnerEmperor = ownerRoles.some((ur) => ur.role.name === ROLES.EMPEROR);
+    }
+    const msg = isOwnerEmperor
+      ? "该邮箱地址已被皇帝账户使用，请先在管理端删除该邮箱后再使用卡密"
+      : "该邮箱地址已被其他用户占用，请更换邮箱地址后再试";
+    console.warn("[CARD-KEY] 邮箱占用冲突", {
+      msg,
+      emailAddress: cardKey.emailAddress,
+    });
+    throw new Error(msg);
+  }
+
+  const existingUserWithEmail = await db.query.users.findFirst({
+    where: eq(users.email, cardKey.emailAddress),
+  });
+  if (existingUserWithEmail) {
+    const ownerRoles = await db.query.userRoles.findMany({
+      where: eq(userRoles.userId, existingUserWithEmail.id),
+      with: { role: true },
+    });
+    const isOwnerEmperor = ownerRoles.some(
+      (ur) => ur.role.name === ROLES.EMPEROR
+    );
+    const msg = isOwnerEmperor
+      ? "该邮箱地址已被皇帝账户使用，请先在管理端删除该邮箱后再使用卡密"
+      : "该邮箱地址已被其他用户占用，请更换邮箱地址后再试";
+    console.warn("[CARD-KEY] users.email 唯一约束冲突", {
+      msg,
+      emailAddress: cardKey.emailAddress,
+    });
+    throw new Error(msg);
+  }
+
+  console.log("[CARD-KEY] 邮箱未占用，开始创建用户");
   // 创建临时用户
   const tempUser = await db
     .insert(users)

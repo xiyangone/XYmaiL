@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth, checkPermission } from "@/lib/auth";
-import { PERMISSIONS } from "@/lib/permissions";
+import { PERMISSIONS, ROLES } from "@/lib/permissions";
 import { generateBatchCardKeys } from "@/lib/card-keys";
 import { z } from "zod";
 import { getRequestContext } from "@cloudflare/next-on-pages";
+import { createDb } from "@/lib/db";
+import { emails, userRoles } from "@/lib/schema";
+import { inArray } from "drizzle-orm";
 
 export const runtime = "edge";
 
@@ -45,6 +48,44 @@ export async function POST(request: Request) {
     }
 
     const { emailAddresses, expiryDays } = validation.data;
+
+    // 先检查邮箱是否已被其它用户占用（皇帝占用允许通过，其它用户占用直接阻止生成）
+    const db = createDb();
+    const existingEmails = await db.query.emails.findMany({
+      where: inArray(emails.address, emailAddresses),
+    });
+
+    if (existingEmails.length > 0) {
+      const ownerIds = Array.from(
+        new Set(existingEmails.map((e) => e.userId).filter(Boolean))
+      ) as string[];
+
+      const emperorOwnerIds = new Set<string>();
+      if (ownerIds.length > 0) {
+        const ownerRoles = await db.query.userRoles.findMany({
+          where: inArray(userRoles.userId, ownerIds),
+          with: { role: true },
+        });
+        for (const or of ownerRoles) {
+          if (or.role?.name === ROLES.EMPEROR) emperorOwnerIds.add(or.userId);
+        }
+      }
+
+      const occupiedByOthers = existingEmails
+        .filter((e) => !emperorOwnerIds.has(e.userId!))
+        .map((e) => e.address);
+
+      if (occupiedByOthers.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "以下邮箱已被其他用户占用，无法生成对应卡密：" +
+              occupiedByOthers.join(", "),
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // 若未显式传入，使用 KV 中的默认天数（CARD_KEY_DEFAULT_DAYS，默认 7）
     const env = getRequestContext().env;
