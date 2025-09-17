@@ -108,6 +108,8 @@ export const {
   signOut,
 } = NextAuth({
   secret: process.env.AUTH_SECRET,
+  // 允许在反向代理/Edge 环境下基于请求头动态推断主机名（当未设置 NEXTAUTH_URL 时尤为重要）
+  trustHost: true,
   providers: [
     ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
       ? [
