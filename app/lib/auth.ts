@@ -27,23 +27,6 @@ function readEnv(key: string): string | undefined {
   }
 }
 
-// 动态读取环境变量的函数，用于运行时获取
-function getEnvVar(key: string): string | undefined {
-  // 首先尝试从 process.env 读取
-  const fromProcess = (globalThis as any).process?.env?.[key] as
-    | string
-    | undefined;
-  if (fromProcess) return fromProcess;
-
-  // 然后尝试从 Cloudflare runtime env 读取
-  try {
-    const runtimeEnv = (getRequestContext() as any)?.env as Record<string, any>;
-    return (runtimeEnv?.[key] as string) ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 // 初始化时尝试读取环境变量，但允许运行时重新获取
 const AUTH_SECRET = readEnv("AUTH_SECRET") ?? readEnv("NEXTAUTH_SECRET");
 const AUTH_GITHUB_ID = readEnv("AUTH_GITHUB_ID") ?? readEnv("GITHUB_ID");
@@ -138,285 +121,335 @@ export async function checkPermission(permission: Permission) {
   return hasPermission(userRoleNames as Role[], permission);
 }
 
-// 获取最终的 AUTH_SECRET，优先使用运行时环境变量
+// 获取最终的 AUTH_SECRET，优先使用运行时环境变量（请求期读取，构建期不报错）
+let __AUTH_ENV_LOGGED = false;
 function getFinalAuthSecret(): string | undefined {
-  const runtimeSecret =
-    getEnvVar("AUTH_SECRET") ?? getEnvVar("NEXTAUTH_SECRET");
+  // 1) 先从 process.env 读取（本地/部分运行时可用）
+  const fromProcess =
+    ((globalThis as any).process?.env?.AUTH_SECRET as string | undefined) ??
+    ((globalThis as any).process?.env?.NEXTAUTH_SECRET as string | undefined);
+
+  // 2) 再尝试 Cloudflare Runtime Env（仅请求期可用）
+  let runtimeSecret: string | undefined = fromProcess;
+  if (!runtimeSecret) {
+    try {
+      const env = (getRequestContext() as any)?.env as Record<string, any>;
+      runtimeSecret =
+        (env?.AUTH_SECRET as string) ??
+        (env?.NEXTAUTH_SECRET as string) ??
+        undefined;
+    } catch {
+      // 在模块初始化阶段取不到上下文，忽略即可
+    }
+  }
+
+  // 3) 最后回落到初始化阶段尝试读取到的常量（大多数平台为 undefined）
   const finalSecret = runtimeSecret ?? AUTH_SECRET;
 
-  console.log("[AUTH] 最终环境变量检查", {
-    hasSecret: !!finalSecret,
-    secretLength: finalSecret?.length || 0,
-    source: runtimeSecret ? "运行时" : "初始化",
-    hasRuntimeSecret: !!runtimeSecret,
-    hasInitSecret: !!AUTH_SECRET,
-  });
+  // 调试日志：仅在开发环境或未读到 secret 时打印一次，避免刷屏
+  if (
+    !__AUTH_ENV_LOGGED &&
+    (process.env.NODE_ENV !== "production" || !finalSecret)
+  ) {
+    console.log("[AUTH] 最终环境变量检查", {
+      hasSecret: !!finalSecret,
+      secretLength: finalSecret?.length || 0,
+      source: runtimeSecret ? "运行时" : "初始化",
+      hasRuntimeSecret: !!runtimeSecret,
+      hasInitSecret: !!AUTH_SECRET,
+    });
+    __AUTH_ENV_LOGGED = true;
+  }
 
   return finalSecret;
 }
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
-  secret: getFinalAuthSecret(),
-  // 允许在反向代理/Edge 环境下基于请求头动态推断主机名（当未设置 NEXTAUTH_URL 时尤为重要）
-  trustHost: true,
-  // 临时日志：仅用于排查凭证回调/会话签发问题（部署稳定后可移除或降级）
-  logger: {
-    error: (...args) => console.error("[auth.error]", ...args),
-    warn: (...args) => console.warn("[auth.warn]", ...args),
-    debug: (...args) => console.debug("[auth.debug]", ...args),
-  },
-  providers: [
-    ...(AUTH_GITHUB_ID && AUTH_GITHUB_SECRET
-      ? [
-          GitHub({
-            clientId: AUTH_GITHUB_ID,
-            clientSecret: AUTH_GITHUB_SECRET,
-          }),
-        ]
-      : []),
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        // 支持两种方式：1) 用户名/密码 2) 卡密
-        username: {
-          label: "用户名",
-          type: "text",
-          placeholder: "请输入用户名",
-        },
-        password: {
-          label: "密码",
-          type: "password",
-          placeholder: "请输入密码",
-        },
-        cardKey: {
-          label: "卡密",
-          type: "text",
-          placeholder: "XYMAIL-XXXX-XXXX-XXXX",
-        },
-      },
-      async authorize(credentials) {
-        if (!credentials) throw new Error("请输入登录信息");
-
-        // 分支A：卡密登录
-        if (credentials.cardKey && String(credentials.cardKey).trim()) {
-          console.log("[AUTH] 卡密登录(Credentials)", {
-            cardKey: "***" + String(credentials.cardKey).slice(-4),
-          });
-          try {
-            const result = await activateCardKey(String(credentials.cardKey));
-            const db = createDb();
-            const user = await db.query.users.findFirst({
-              where: eq(users.id, result.userId),
-            });
-            if (!user) throw new Error("用户创建失败");
-            return { ...user, password: undefined } as any;
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : "卡密登录失败";
-            console.warn("[AUTH] 卡密登录失败(Credentials)", msg);
-            throw new Error(msg);
-          }
-        }
-
-        // 分支B：用户名/密码
-        const { username, password } = credentials as any;
-        if (!username || !password) throw new Error("请输入用户名和密码");
-
-        try {
-          authSchema.parse({ username, password });
-        } catch {
-          throw new Error("输入格式不正确");
-        }
-
-        const db = createDb();
-        const user = await db.query.users.findFirst({
-          where: eq(users.username, String(username)),
-        });
-        if (!user) throw new Error("用户名或密码错误");
-
-        const isValid = await comparePassword(
-          String(password),
-          user.password as string
-        );
-        if (!isValid) throw new Error("用户名或密码错误");
-
-        return { ...user, password: undefined } as any;
-      },
-    }),
-  ],
-  //  
-  //  
-  //  
-  //  
-  //  
-  //  
-  //  
-  //  
-  //  
-  // : 
-  // : 
-  // : 
-  // : 
-  // : 
-  // : 
-  // 
-  events: {
-    async signIn({ user }) {
-      try {
-        const db = createDb();
-
-        // 1) 确保 OAuth 用户也在本地 users 表中存在（无 Adapter 模式）
-        let dbUser = null as any;
-        if (user?.email) {
-          dbUser = await db.query.users.findFirst({
-            where: eq(users.email, user.email as string),
-          });
-        }
-        if (!dbUser && user?.username) {
-          dbUser = await db.query.users.findFirst({
-            where: eq(users.username, user.username as string),
-          });
-        }
-
-        if (!dbUser) {
-          // 构造安全的 username
-          const base = (user?.username ||
-            (user?.email
-              ? (user.email as string).split("@")[0]
-              : "gh")) as string;
-          const clean =
-            base.replace(/[^a-zA-Z0-9_\-\.]/g, "").slice(0, 24) || "gh";
-          const unique = `${clean}_${(
-            globalThis.crypto?.randomUUID?.() ||
-            Math.random().toString(36).slice(2, 8)
-          ).slice(0, 6)}`;
-
-          const inserted = await db
-            .insert(users)
-            .values({
-              name: (user?.name as string) || null,
-              email: (user?.email as string) || null,
-              image: (user?.image as string) || null,
-              username: unique,
-            })
-            .returning();
-          dbUser = inserted?.[0];
-        }
-
-        const uid = (user?.id as string) || dbUser?.id;
-        if (!uid) return;
-
-        // 2) 若已分配角色则跳过
-        const existingRole = await db.query.userRoles.findFirst({
-          where: eq(userRoles.userId, uid),
-        });
-        if (existingRole) return;
-
-        // 3) 分配默认角色
-        const defaultRole = await getDefaultRole();
-        const role = await findOrCreateRole(db, defaultRole);
-        await assignRoleToUser(db, uid, role.id);
-        return;
-      } catch (error) {
-        console.error("Error in signIn event:", error);
-      }
+export function buildAuthOptions() {
+  return {
+    secret: getFinalAuthSecret(),
+    // 允许在反向代理/Edge 环境下基于请求头动态推断主机名（当未设置 NEXTAUTH_URL 时尤为重要）
+    trustHost: true,
+    // 临时日志：仅用于排查凭证回调/会话签发问题（部署稳定后可移除或降级）
+    logger: {
+      error: (...args: unknown[]) => console.error("[auth.error]", ...args),
+      warn: (...args: unknown[]) => console.warn("[auth.warn]", ...args),
+      debug: (...args: unknown[]) => console.debug("[auth.debug]", ...args),
     },
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      // 第一次登录（含 OAuth）时，尝试将 token 绑定到本地 DB 的用户ID
-      if (user) {
+    providers: [
+      ...(AUTH_GITHUB_ID && AUTH_GITHUB_SECRET
+        ? [
+            GitHub({
+              clientId: AUTH_GITHUB_ID,
+              clientSecret: AUTH_GITHUB_SECRET,
+            }),
+          ]
+        : []),
+      CredentialsProvider({
+        name: "Credentials",
+        credentials: {
+          // 支持两种方式：1) 用户名/密码 2) 卡密
+          username: {
+            label: "用户名",
+            type: "text",
+            placeholder: "请输入用户名",
+          },
+          password: {
+            label: "密码",
+            type: "password",
+            placeholder: "请输入密码",
+          },
+          cardKey: {
+            label: "卡密",
+            type: "text",
+            placeholder: "XYMAIL-XXXX-XXXX-XXXX",
+          },
+        },
+        async authorize(credentials) {
+          if (!credentials) throw new Error("请输入登录信息");
+
+          // 分支A：卡密登录
+          if (credentials.cardKey && String(credentials.cardKey).trim()) {
+            console.log("[AUTH] 卡密登录(Credentials)", {
+              cardKey: "***" + String(credentials.cardKey).slice(-4),
+            });
+            try {
+              const result = await activateCardKey(String(credentials.cardKey));
+              const db = createDb();
+              const user = await db.query.users.findFirst({
+                where: eq(users.id, result.userId),
+              });
+              if (!user) throw new Error("用户创建失败");
+              return { ...user, password: undefined } as any;
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : "卡密登录失败";
+              console.warn("[AUTH] 卡密登录失败(Credentials)", msg);
+              throw new Error(msg);
+            }
+          }
+
+          // 分支B：用户名/密码
+          const { username, password } = credentials as any;
+          if (!username || !password) throw new Error("请输入用户名和密码");
+
+          try {
+            authSchema.parse({ username, password });
+          } catch {
+            throw new Error("输入格式不正确");
+          }
+
+          const db = createDb();
+          const user = await db.query.users.findFirst({
+            where: eq(users.username, String(username)),
+          });
+          if (!user) throw new Error("用户名或密码错误");
+
+          const isValid = await comparePassword(
+            String(password),
+            user.password as string
+          );
+          if (!isValid) throw new Error("用户名或密码错误");
+
+          return { ...user, password: undefined } as any;
+        },
+      }),
+    ],
+    //  
+    //  
+    //  
+    //  
+    //  
+    //  
+    //  
+    //  
+    //  
+    // : 
+    // : 
+    // : 
+    // : 
+    // : 
+    // : 
+    // 
+    events: {
+      async signIn({ user }: { user: any }) {
         try {
           const db = createDb();
-          let dbUser: any = null;
-          // 优先用邮箱匹配到本地用户（OAuth 常见）
-          if ((user as any).email) {
+
+          // 1) 确保 OAuth 用户也在本地 users 表中存在（无 Adapter 模式）
+          let dbUser = null as any;
+          if (user?.email) {
             dbUser = await db.query.users.findFirst({
-              where: eq(users.email, (user as any).email as string),
+              where: eq(users.email, user.email as string),
             });
           }
-          // 再尝试用 username（凭证/卡密登录常见）
-          if (!dbUser && (user as any).username) {
+          if (!dbUser && user?.username) {
             dbUser = await db.query.users.findFirst({
-              where: eq(users.username, (user as any).username as string),
+              where: eq(users.username, user.username as string),
             });
           }
 
-          if (dbUser) {
-            token.id = dbUser.id;
-            token.name =
-              dbUser.name ||
-              dbUser.username ||
-              (user as any).name ||
-              (user as any).username;
-            token.username = dbUser.username || (user as any).username;
-            token.image =
-              dbUser.image ||
-              (user as any).image ||
-              generateAvatarUrl((token.name as string) || "user");
-          } else {
-            // 兜底：保留 NextAuth 提供的 user 字段（凭证登录会带有 id）
-            token.id = (user as any).id;
-            token.name = (user as any).name || (user as any).username;
-            token.username = (user as any).username;
-            token.image =
-              (user as any).image ||
-              generateAvatarUrl(((user as any).name as string) || "user");
+          if (!dbUser) {
+            // 构造安全的 username
+            const base = (user?.username ||
+              (user?.email
+                ? (user.email as string).split("@")[0]
+                : "gh")) as string;
+            const clean =
+              base.replace(/[^a-zA-Z0-9_\-\.]/g, "").slice(0, 24) || "gh";
+            const unique = `${clean}_${(
+              globalThis.crypto?.randomUUID?.() ||
+              Math.random().toString(36).slice(2, 8)
+            ).slice(0, 6)}`;
+
+            const inserted = await db
+              .insert(users)
+              .values({
+                name: (user?.name as string) || null,
+                email: (user?.email as string) || null,
+                image: (user?.image as string) || null,
+                username: unique,
+              })
+              .returning();
+            dbUser = inserted?.[0];
           }
-        } catch (e) {
-          // 出错时不吞异常，打印日志并保持原始 token，避免阻断登录流程
-          console.warn("[auth.jwt] ", e);
-          token.id = (user as any).id ?? token.id;
-          token.name = (user as any).name ?? token.name;
-          token.username = (user as any).username ?? token.username;
-          token.image = (user as any).image ?? token.image;
-        }
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.name = token.name as string;
-        session.user.username = token.username as string;
-        session.user.image = token.image as string;
 
-        const db = createDb();
-        let userRoleRecords = await db.query.userRoles.findMany({
-          where: eq(userRoles.userId, session.user.id),
-          with: { role: true },
-        });
+          const uid = (user?.id as string) || dbUser?.id;
+          if (!uid) return;
 
-        if (!userRoleRecords.length) {
+          // 2) 若已分配角色则跳过
+          const existingRole = await db.query.userRoles.findFirst({
+            where: eq(userRoles.userId, uid),
+          });
+          if (existingRole) return;
+
+          // 3) 分配默认角色
           const defaultRole = await getDefaultRole();
           const role = await findOrCreateRole(db, defaultRole);
-          await assignRoleToUser(db, session.user.id, role.id);
-          userRoleRecords = [
-            {
-              userId: session.user.id,
-              roleId: role.id,
-              createdAt: new Date(),
-              role: role,
-            },
-          ];
+          await assignRoleToUser(db, uid, role.id);
+          return;
+        } catch (error) {
+          console.error("Error in signIn event:", error);
+        }
+      },
+    },
+    callbacks: {
+      async jwt({ token, user }: any) {
+        // 第一次登录（含 OAuth）时，尝试将 token 绑定到本地 DB 的用户ID
+        if (user) {
+          try {
+            const db = createDb();
+            let dbUser: any = null;
+            // 优先用邮箱匹配到本地用户（OAuth 常见）
+            if ((user as any).email) {
+              dbUser = await db.query.users.findFirst({
+                where: eq(users.email, (user as any).email as string),
+              });
+            }
+            // 再尝试用 username（凭证/卡密登录常见）
+            if (!dbUser && (user as any).username) {
+              dbUser = await db.query.users.findFirst({
+                where: eq(users.username, (user as any).username as string),
+              });
+            }
+
+            if (dbUser) {
+              token.id = dbUser.id;
+              token.name =
+                dbUser.name ||
+                dbUser.username ||
+                (user as any).name ||
+                (user as any).username;
+              token.username = dbUser.username || (user as any).username;
+              token.image =
+                dbUser.image ||
+                (user as any).image ||
+                generateAvatarUrl((token.name as string) || "user");
+            } else {
+              // 兜底：保留 NextAuth 提供的 user 字段（凭证登录会带有 id）
+              token.id = (user as any).id;
+              token.name = (user as any).name || (user as any).username;
+              token.username = (user as any).username;
+              token.image =
+                (user as any).image ||
+                generateAvatarUrl(((user as any).name as string) || "user");
+            }
+          } catch (e) {
+            // 出错时不吞异常，打印日志并保持原始 token，避免阻断登录流程
+            console.warn("[auth.jwt] ", e);
+            token.id = (user as any).id ?? token.id;
+            token.name = (user as any).name ?? token.name;
+            token.username = (user as any).username ?? token.username;
+            token.image = (user as any).image ?? token.image;
+          }
+        }
+        return token;
+      },
+      async session({ session, token }: any) {
+        if (token && session.user) {
+          session.user.id = token.id as string;
+          session.user.name = token.name as string;
+          session.user.username = token.username as string;
+          session.user.image = token.image as string;
+
+          const db = createDb();
+          let userRoleRecords = await db.query.userRoles.findMany({
+            where: eq(userRoles.userId, session.user.id),
+            with: { role: true },
+          });
+
+          if (!userRoleRecords.length) {
+            const defaultRole = await getDefaultRole();
+            const role = await findOrCreateRole(db, defaultRole);
+            await assignRoleToUser(db, session.user.id, role.id);
+
+            userRoleRecords = [
+              {
+                userId: session.user.id,
+                roleId: role.id,
+                createdAt: new Date(),
+                role: role,
+              },
+            ];
+          }
+
+          session.user.roles = userRoleRecords.map((ur) => ({
+            name: ur.role.name,
+          }));
         }
 
-        session.user.roles = userRoleRecords.map((ur) => ({
-          name: ur.role.name,
-        }));
-      }
-
-      return session;
+        return session;
+      },
     },
-  },
-  session: {
-    strategy: "jwt",
-  },
-});
+    session: {
+      strategy: "jwt",
+    },
+  };
+}
+
+// 包装导出：按请求创建 NextAuth，确保在 Cloudflare Pages/Edge 读取到 runtime env
+export async function auth() {
+  const { auth } = NextAuth(buildAuthOptions() as any);
+  return auth();
+}
+
+export async function signIn(...args: any[]) {
+  const { signIn } = NextAuth(buildAuthOptions() as any);
+  return (signIn as any)(...(args as any));
+}
+
+export async function signOut(...args: any[]) {
+  const { signOut } = NextAuth(buildAuthOptions() as any);
+  return (signOut as any)(...(args as any));
+}
+
+export async function GET(...args: any[]) {
+  const { handlers } = NextAuth(buildAuthOptions() as any);
+  return (handlers as any).GET(...(args as any));
+}
+
+export async function POST(...args: any[]) {
+  const { handlers } = NextAuth(buildAuthOptions() as any);
+  return (handlers as any).POST(...(args as any));
+}
 
 export async function register(username: string, password: string) {
   const db = createDb();
