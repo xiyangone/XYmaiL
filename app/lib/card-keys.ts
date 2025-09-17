@@ -225,24 +225,59 @@ export async function cleanupExpiredTempAccounts() {
 }
 
 /**
+ * 清理过期邮箱（删除 emails.expiresAt < now 的记录；将级联删除 messages）
+ */
+export async function cleanupExpiredEmails() {
+  const db = createDb();
+  const now = new Date();
+  const expiredEmails = await db.query.emails.findMany({
+    where: lt(emails.expiresAt, now),
+  });
+  if (expiredEmails.length > 0) {
+    await db.delete(emails).where(lt(emails.expiresAt, now));
+  }
+  return expiredEmails.length;
+}
+
+/**
  * 清理过期未使用的卡密
  */
-export async function cleanupExpiredCardKeys() {
+export async function cleanupExpiredCardKeys(options?: {
+  includeUsedExpired?: boolean;
+}) {
+  const includeUsedExpired = options?.includeUsedExpired === true;
   const db = createDb();
   const now = new Date();
 
-  // 仅删除“过期且未使用”的卡密，已使用的卡密保留审计痕迹
-  const expired = await db.query.cardKeys.findMany({
+  // 1) 删除“过期且未使用”的卡密
+  const expiredUnused = await db.query.cardKeys.findMany({
     where: and(lt(cardKeys.expiresAt, now), eq(cardKeys.isUsed, false)),
   });
-
-  if (expired.length > 0) {
+  if (expiredUnused.length > 0) {
     await db
       .delete(cardKeys)
       .where(and(lt(cardKeys.expiresAt, now), eq(cardKeys.isUsed, false)));
   }
 
-  return expired.length;
+  // 2) 可选：删除“过期且已使用”的卡密（需级联清理其临时账号/用户）
+  let expiredUsedCount = 0;
+  if (includeUsedExpired) {
+    const expiredUsed = await db.query.cardKeys.findMany({
+      where: and(lt(cardKeys.expiresAt, now), eq(cardKeys.isUsed, true)),
+    });
+    for (const ck of expiredUsed) {
+      const ta = await db.query.tempAccounts.findFirst({
+        where: eq(tempAccounts.cardKeyId, ck.id),
+      });
+      if (ta?.userId) {
+        await db.delete(users).where(eq(users.id, ta.userId));
+      }
+      await db.delete(cardKeys).where(eq(cardKeys.id, ck.id));
+    }
+    expiredUsedCount = expiredUsed.length;
+  }
+
+  return expiredUnused.length + expiredUsedCount;
 }
 
 /**
