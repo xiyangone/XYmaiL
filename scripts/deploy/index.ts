@@ -400,7 +400,7 @@ const deployPages = () => {
     // 最后部署到Pages
     console.log("🚀 Deploying to Cloudflare Pages...");
     execSync(
-      `pnpm dlx wrangler pages deploy .vercel/output/static --project-name ${PROJECT_NAME} --branch main`,
+      `pnpm dlx wrangler pages deploy .vercel/output --project-name ${PROJECT_NAME} --branch main`,
       { stdio: "inherit" }
     );
 
