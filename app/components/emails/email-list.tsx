@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { CreateDialog } from "./create-dialog";
 import { Mail, RefreshCw, Trash2 } from "lucide-react";
@@ -54,7 +54,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
   const [emailToDelete, setEmailToDelete] = useState<Email | null>(null);
   const { toast } = useToast();
 
-  const fetchEmails = async (cursor?: string) => {
+  const fetchEmails = useCallback(async (cursor?: string) => {
     try {
       const url = new URL("/api/emails", window.location.origin);
       if (cursor) {
@@ -68,21 +68,19 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
       const data = (await response.json()) as EmailResponse;
 
       if (!cursor) {
-        const newEmails = data.emails;
-        const oldEmails = emails;
-
-        const lastDuplicateIndex = newEmails.findIndex((newEmail) =>
-          oldEmails.some((oldEmail) => oldEmail.id === newEmail.id)
-        );
-
-        if (lastDuplicateIndex === -1) {
-          setEmails(newEmails);
-          setNextCursor(data.nextCursor);
-          setTotal(data.total);
-          return;
-        }
-        const uniqueNewEmails = newEmails.slice(0, lastDuplicateIndex);
-        setEmails([...uniqueNewEmails, ...oldEmails]);
+        setEmails((prev) => {
+          const newEmails = data.emails;
+          const oldEmails = prev;
+          const lastDuplicateIndex = newEmails.findIndex((newEmail) =>
+            oldEmails.some((oldEmail) => oldEmail.id === newEmail.id)
+          );
+          if (lastDuplicateIndex === -1) {
+            return newEmails;
+          }
+          const uniqueNewEmails = newEmails.slice(0, lastDuplicateIndex);
+          return [...uniqueNewEmails, ...oldEmails];
+        });
+        setNextCursor(data.nextCursor);
         setTotal(data.total);
         return;
       }
@@ -96,7 +94,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
       setRefreshing(false);
       setLoadingMore(false);
     }
-  };
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -118,7 +116,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
 
   useEffect(() => {
     if (session) fetchEmails();
-  }, [session]);
+  }, [session, fetchEmails]);
 
   const handleDelete = async (email: Email) => {
     try {

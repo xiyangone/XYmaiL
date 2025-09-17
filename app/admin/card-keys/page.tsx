@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,14 +49,9 @@ export default function CardKeysPage() {
 
   const canManageCardKeys = checkPermission(PERMISSIONS.MANAGE_CARD_KEYS);
 
-  useEffect(() => {
-    if (canManageCardKeys) {
-      fetchCardKeys();
-    }
-  }, [canManageCardKeys]);
-
-  const fetchCardKeys = async () => {
+  const fetchCardKeys = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await fetch("/api/admin/card-keys");
       if (!response.ok) {
         throw new Error("获取卡密列表失败");
@@ -73,7 +68,13 @@ export default function CardKeysPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (canManageCardKeys) {
+      fetchCardKeys();
+    }
+  }, [canManageCardKeys, fetchCardKeys]);
 
   const generateCardKeys = async () => {
     const addresses = emailAddresses

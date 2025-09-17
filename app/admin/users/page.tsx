@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,13 +80,7 @@ export default function UsersPage() {
 
   const canManageUsers = checkPermission(PERMISSIONS.PROMOTE_USER);
 
-  useEffect(() => {
-    if (canManageUsers) {
-      fetchUsers();
-    }
-  }, [canManageUsers]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/admin/users");
@@ -108,7 +102,13 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (canManageUsers) {
+      fetchUsers();
+    }
+  }, [canManageUsers, fetchUsers]);
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
