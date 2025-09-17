@@ -381,21 +381,7 @@ const deployPages = () => {
 
     // 然后构建Cloudflare Pages
     console.log("🔧 Building for Cloudflare Pages...");
-    try {
-      execSync("pnpm run build:pages", { stdio: "inherit" });
-    } catch (buildError) {
-      console.log("⚠️ build:pages failed, trying alternative approach...");
-      // 在Windows环境下可能失败，但在GitHub Actions (Linux) 中应该成功
-      if (process.platform === "win32") {
-        console.log("🪟 Windows detected, skipping build:pages for now");
-        console.log(
-          "📝 Note: This will work in GitHub Actions (Linux environment)"
-        );
-        return;
-      } else {
-        throw buildError;
-      }
-    }
+    execSync("pnpm run build:pages", { stdio: "inherit" });
 
     // 最后部署到Pages
     console.log("🚀 Deploying to Cloudflare Pages...");

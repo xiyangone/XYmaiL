@@ -172,11 +172,11 @@ export default function CardKeysPage() {
       });
 
       if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        throw new Error(error.error || "清理过期数据失败");
+        const error = await response.json();
+        throw new Error(error.error || "清理过期卡密失败");
       }
 
-      const result = (await response.json()) as { message: string };
+      const result = await response.json();
       toast({
         title: "成功",
         description: result.message,
@@ -239,50 +239,48 @@ export default function CardKeysPage() {
                 生成卡密
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>生成卡密</DialogTitle>
-                <DialogDescription>
-                  为指定的邮箱地址生成卡密，每行一个邮箱地址
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="emails">邮箱地址</Label>
-                  <Textarea
-                    id="emails"
-                    placeholder="user1@example.com
-user2@example.com"
-                    value={emailAddresses}
-                    onChange={(e) => setEmailAddresses(e.target.value)}
-                    rows={5}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expiry">有效期（天）</Label>
-                  <Input
-                    id="expiry"
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={expiryDays}
-                    onChange={(e) => setExpiryDays(e.target.value)}
-                  />
-                </div>
-                <Button
-                  onClick={generateCardKeys}
-                  disabled={generating}
-                  className="w-full"
-                >
-                  {generating && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  生成卡密
-                </Button>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>生成卡密</DialogTitle>
+              <DialogDescription>
+                为指定的邮箱地址生成卡密，每行一个邮箱地址
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="emails">邮箱地址</Label>
+                <Textarea
+                  id="emails"
+                  placeholder="user1@example.com&#10;user2@example.com"
+                  value={emailAddresses}
+                  onChange={(e) => setEmailAddresses(e.target.value)}
+                  rows={5}
+                />
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <div>
+                <Label htmlFor="expiry">有效期（天）</Label>
+                <Input
+                  id="expiry"
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={expiryDays}
+                  onChange={(e) => setExpiryDays(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={generateCardKeys}
+                disabled={generating}
+                className="w-full"
+              >
+                {generating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                生成卡密
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {loading ? (
