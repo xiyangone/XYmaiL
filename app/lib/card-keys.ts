@@ -196,19 +196,14 @@ export async function getTempUserEmailAddress(
 }
 
 /**
- * 统一清理过期数据（临时账号和卡密）
+ * 清理过期的临时账号
  */
-export async function cleanupExpiredData() {
-  console.log("[CLEANUP] 开始统一清理过期数据");
+export async function cleanupExpiredTempAccounts() {
+  console.log("[TEMP-ACCOUNT] 开始清理过期临时账号");
   const db = createDb();
   const now = new Date();
 
-  const results = {
-    tempAccounts: { deletedCount: 0, details: [] as any[] },
-    cardKeys: { deletedCount: 0, details: [] as any[] },
-  };
-
-  // 1. 清理过期临时账号
+  // 查找过期的临时账号
   const expiredAccounts = await db.query.tempAccounts.findMany({
     where: and(
       eq(tempAccounts.isActive, true),
@@ -216,14 +211,15 @@ export async function cleanupExpiredData() {
     ),
   });
 
-  console.log(`[CLEANUP] 找到 ${expiredAccounts.length} 个过期临时账号`);
+  console.log(`[TEMP-ACCOUNT] 找到 ${expiredAccounts.length} 个过期临时账号`);
 
+  const cleanupResults = [];
   for (const account of expiredAccounts) {
     try {
       // 先重置关联的卡密状态
       const cardKeyReset = await resetCardKeyStatus(account.userId);
 
-      // 删除用户及相关数据
+      // 删除用户及相关数据（级联删除会处理邮箱和消息）
       await db.delete(users).where(eq(users.id, account.userId));
 
       // 标记临时账号为非活跃
@@ -232,56 +228,30 @@ export async function cleanupExpiredData() {
         .set({ isActive: false })
         .where(eq(tempAccounts.id, account.id));
 
-      results.tempAccounts.details.push({
+      cleanupResults.push({
         userId: account.userId,
         emailAddress: account.emailAddress,
         cardKeysReset: cardKeyReset.resetCount,
       });
 
-      console.log(`[CLEANUP] 清理临时账号: ${account.emailAddress}`);
+      console.log(
+        `[TEMP-ACCOUNT] 清理临时账号: ${account.emailAddress}, 重置卡密: ${cardKeyReset.resetCount}个`
+      );
     } catch (error) {
       console.error(
-        `[CLEANUP] 清理临时账号失败: ${account.emailAddress}`,
+        `[TEMP-ACCOUNT] 清理临时账号失败: ${account.emailAddress}`,
         error
       );
     }
   }
-  results.tempAccounts.deletedCount = results.tempAccounts.details.length;
-
-  // 2. 清理过期卡密
-  const expiredCardKeys = await db.query.cardKeys.findMany({
-    where: lt(cardKeys.expiresAt, now),
-  });
-
-  console.log(`[CLEANUP] 找到 ${expiredCardKeys.length} 个过期卡密`);
-
-  for (const cardKey of expiredCardKeys) {
-    try {
-      await db.delete(cardKeys).where(eq(cardKeys.id, cardKey.id));
-      results.cardKeys.details.push({
-        code: cardKey.code,
-        emailAddress: cardKey.emailAddress,
-        isUsed: cardKey.isUsed,
-      });
-      console.log(`[CLEANUP] 删除过期卡密: ${cardKey.code}`);
-    } catch (error) {
-      console.error(`[CLEANUP] 删除卡密失败: ${cardKey.code}`, error);
-    }
-  }
-  results.cardKeys.deletedCount = results.cardKeys.details.length;
 
   console.log(
-    `[CLEANUP] 清理完成 - 临时账号: ${results.tempAccounts.deletedCount}, 卡密: ${results.cardKeys.deletedCount}`
+    `[TEMP-ACCOUNT] 成功清理 ${cleanupResults.length} 个过期临时账号`
   );
-  return results;
-}
-
-/**
- * 清理过期的临时账号（保持向后兼容）
- */
-export async function cleanupExpiredTempAccounts() {
-  const results = await cleanupExpiredData();
-  return results.tempAccounts;
+  return {
+    deletedCount: cleanupResults.length,
+    details: cleanupResults,
+  };
 }
 
 /**
@@ -308,11 +278,43 @@ export async function generateBatchCardKeys(
 }
 
 /**
- * 清理过期的卡密（保持向后兼容）
+ * 清理过期的卡密
  */
 export async function cleanupExpiredCardKeys() {
-  const results = await cleanupExpiredData();
-  return results.cardKeys;
+  console.log("[CARD-KEY] 开始清理过期卡密");
+  const db = createDb();
+  const now = new Date();
+
+  // 查找过期的卡密
+  const expiredCardKeys = await db.query.cardKeys.findMany({
+    where: lt(cardKeys.expiresAt, now),
+  });
+
+  console.log(`[CARD-KEY] 找到 ${expiredCardKeys.length} 个过期卡密`);
+
+  if (expiredCardKeys.length === 0) {
+    return { deletedCount: 0, details: [] };
+  }
+
+  // 删除过期的卡密
+  const deletedCardKeys = [];
+  for (const cardKey of expiredCardKeys) {
+    try {
+      await db.delete(cardKeys).where(eq(cardKeys.id, cardKey.id));
+      deletedCardKeys.push({
+        code: cardKey.code,
+        emailAddress: cardKey.emailAddress,
+        isUsed: cardKey.isUsed,
+        expiresAt: cardKey.expiresAt,
+      });
+      console.log(`[CARD-KEY] 删除过期卡密: ${cardKey.code}`);
+    } catch (error) {
+      console.error(`[CARD-KEY] 删除卡密失败: ${cardKey.code}`, error);
+    }
+  }
+
+  console.log(`[CARD-KEY] 成功删除 ${deletedCardKeys.length} 个过期卡密`);
+  return { deletedCount: deletedCardKeys.length, details: deletedCardKeys };
 }
 
 /**
