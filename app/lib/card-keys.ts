@@ -199,7 +199,6 @@ export async function getTempUserEmailAddress(
  * 清理过期的临时账号
  */
 export async function cleanupExpiredTempAccounts() {
-  console.log("[TEMP-ACCOUNT] 开始清理过期临时账号");
   const db = createDb();
   const now = new Date();
 
@@ -211,47 +210,18 @@ export async function cleanupExpiredTempAccounts() {
     ),
   });
 
-  console.log(`[TEMP-ACCOUNT] 找到 ${expiredAccounts.length} 个过期临时账号`);
-
-  const cleanupResults = [];
   for (const account of expiredAccounts) {
-    try {
-      // 先重置关联的卡密状态
-      const cardKeyReset = await resetCardKeyStatus(account.userId);
+    // 删除用户及相关数据（级联删除会处理邮箱和消息）
+    await db.delete(users).where(eq(users.id, account.userId));
 
-      // 删除用户及相关数据（级联删除会处理邮箱和消息）
-      await db.delete(users).where(eq(users.id, account.userId));
-
-      // 标记临时账号为非活跃
-      await db
-        .update(tempAccounts)
-        .set({ isActive: false })
-        .where(eq(tempAccounts.id, account.id));
-
-      cleanupResults.push({
-        userId: account.userId,
-        emailAddress: account.emailAddress,
-        cardKeysReset: cardKeyReset.resetCount,
-      });
-
-      console.log(
-        `[TEMP-ACCOUNT] 清理临时账号: ${account.emailAddress}, 重置卡密: ${cardKeyReset.resetCount}个`
-      );
-    } catch (error) {
-      console.error(
-        `[TEMP-ACCOUNT] 清理临时账号失败: ${account.emailAddress}`,
-        error
-      );
-    }
+    // 标记临时账号为非活跃
+    await db
+      .update(tempAccounts)
+      .set({ isActive: false })
+      .where(eq(tempAccounts.id, account.id));
   }
 
-  console.log(
-    `[TEMP-ACCOUNT] 成功清理 ${cleanupResults.length} 个过期临时账号`
-  );
-  return {
-    deletedCount: cleanupResults.length,
-    details: cleanupResults,
-  };
+  return expiredAccounts.length;
 }
 
 /**
@@ -275,89 +245,4 @@ export async function generateBatchCardKeys(
   await db.insert(cardKeys).values(cardKeyData);
 
   return cardKeyData.map(({ code, emailAddress }) => ({ code, emailAddress }));
-}
-
-/**
- * 清理过期的卡密
- */
-export async function cleanupExpiredCardKeys() {
-  console.log("[CARD-KEY] 开始清理过期卡密");
-  const db = createDb();
-  const now = new Date();
-
-  // 查找过期的卡密
-  const expiredCardKeys = await db.query.cardKeys.findMany({
-    where: lt(cardKeys.expiresAt, now),
-  });
-
-  console.log(`[CARD-KEY] 找到 ${expiredCardKeys.length} 个过期卡密`);
-
-  if (expiredCardKeys.length === 0) {
-    return { deletedCount: 0, details: [] };
-  }
-
-  // 删除过期的卡密
-  const deletedCardKeys = [];
-  for (const cardKey of expiredCardKeys) {
-    try {
-      await db.delete(cardKeys).where(eq(cardKeys.id, cardKey.id));
-      deletedCardKeys.push({
-        code: cardKey.code,
-        emailAddress: cardKey.emailAddress,
-        isUsed: cardKey.isUsed,
-        expiresAt: cardKey.expiresAt,
-      });
-      console.log(`[CARD-KEY] 删除过期卡密: ${cardKey.code}`);
-    } catch (error) {
-      console.error(`[CARD-KEY] 删除卡密失败: ${cardKey.code}`, error);
-    }
-  }
-
-  console.log(`[CARD-KEY] 成功删除 ${deletedCardKeys.length} 个过期卡密`);
-  return { deletedCount: deletedCardKeys.length, details: deletedCardKeys };
-}
-
-/**
- * 重置卡密状态（当关联的临时账号被删除时）
- */
-export async function resetCardKeyStatus(userId: string) {
-  console.log("[CARD-KEY] 重置用户关联的卡密状态", { userId });
-  const db = createDb();
-
-  // 查找该用户使用的卡密
-  const userCardKeys = await db.query.cardKeys.findMany({
-    where: eq(cardKeys.usedBy, userId),
-  });
-
-  console.log(`[CARD-KEY] 找到 ${userCardKeys.length} 个需要重置的卡密`);
-
-  if (userCardKeys.length === 0) {
-    return { resetCount: 0, details: [] };
-  }
-
-  // 重置卡密状态
-  const resetCardKeys = [];
-  for (const cardKey of userCardKeys) {
-    try {
-      await db
-        .update(cardKeys)
-        .set({
-          isUsed: false,
-          usedBy: null,
-          usedAt: null,
-        })
-        .where(eq(cardKeys.id, cardKey.id));
-
-      resetCardKeys.push({
-        code: cardKey.code,
-        emailAddress: cardKey.emailAddress,
-      });
-      console.log(`[CARD-KEY] 重置卡密状态: ${cardKey.code}`);
-    } catch (error) {
-      console.error(`[CARD-KEY] 重置卡密状态失败: ${cardKey.code}`, error);
-    }
-  }
-
-  console.log(`[CARD-KEY] 成功重置 ${resetCardKeys.length} 个卡密状态`);
-  return { resetCount: resetCardKeys.length, details: resetCardKeys };
 }
