@@ -55,7 +55,7 @@ export default function CardKeysPage() {
   const [expiryDays, setExpiryDays] = useState("7");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cardKeyToDelete, setCardKeyToDelete] = useState<CardKey | null>(null);
-  const [autoReleaseEmperorOwned, setAutoReleaseEmperorOwned] = useState(false);
+  const [autoReleaseEmperorOwned, setAutoReleaseEmperorOwned] = useState(true);
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
   const router = useRouter();

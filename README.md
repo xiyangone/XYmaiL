@@ -338,6 +338,10 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
    - 设置过期天数（默认 7 天，可在“网站设置”中修改默认值）
    - 支持批量生成
    - 自动下载生成的卡密列表
+   - 邮箱唯一策略：邮箱为全局唯一；若目标邮箱已被占用将禁止生成；若被皇帝占用可选择“自动释放后生成”（默认开启，可在对话框中关闭）
+   - 接口参数：`autoReleaseEmperorOwned`（可选，默认 `true`）
+   - 成功返回：`{ success, message, cardKeys, warnings? }`（warnings 为皇帝占用时的提示，可能为空数组）
+   - 失败返回：`{ error, occupiedBy? }`（当被其他用户占用时，附上 `occupiedBy[{ address, username? }]` 便于清理）
 
 2. **卡密管理**
 

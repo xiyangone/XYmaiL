@@ -119,30 +119,38 @@ export async function POST(request: Request) {
       }
 
       if (occupiedByEmperor.length > 0) {
-        // 皇帝占用：允许继续，但返回 warnings；若启用自动化则先释放
-        if (autoReleaseEmperorOwned) {
-          await db.delete(emails).where(
-            inArray(
-              emails.address,
-              occupiedByEmperor.map((e) => e.address)
-            )
+        // 邮箱是全局唯一：若被皇帝占用且未启用自动释放，则阻止生成并提示
+        const autoRelease = (autoReleaseEmperorOwned ?? true) === true;
+        if (!autoRelease) {
+          const occupiedBy = occupiedByEmperor.map((e) => ({
+            address: e.address,
+            userId: e.userId!,
+            username: usersById.get(e.userId!)?.username,
+            role: "EMPEROR",
+          }));
+          return NextResponse.json(
+            {
+              error:
+                "以下邮箱已被皇帝账户占用。为保证唯一性，请先释放（删除邮箱）或开启自动释放后再生成卡密。",
+              occupiedBy,
+            },
+            { status: 400 }
           );
-          warnings = occupiedByEmperor.map((e) => ({
-            address: e.address,
-            userId: e.userId!,
-            username: usersById.get(e.userId!)?.username,
-            role: "EMPEROR",
-            action: "已自动释放（删除邮箱记录）",
-          }));
-        } else {
-          warnings = occupiedByEmperor.map((e) => ({
-            address: e.address,
-            userId: e.userId!,
-            username: usersById.get(e.userId!)?.username,
-            role: "EMPEROR",
-            action: "激活前需先释放该邮箱",
-          }));
         }
+        // 启用自动释放：先删除皇帝占用的邮箱记录，再继续生成
+        await db.delete(emails).where(
+          inArray(
+            emails.address,
+            occupiedByEmperor.map((e) => e.address)
+          )
+        );
+        warnings = occupiedByEmperor.map((e) => ({
+          address: e.address,
+          userId: e.userId!,
+          username: usersById.get(e.userId!)?.username,
+          role: "EMPEROR",
+          action: "已自动释放（删除邮箱记录）",
+        }));
       }
     }
 
