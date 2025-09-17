@@ -165,35 +165,6 @@ export default function CardKeysPage() {
     }
   };
 
-  const cleanupExpiredCardKeys = async () => {
-    try {
-      const response = await fetch("/api/cleanup/card-keys", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        throw new Error(error.error || "清理过期数据失败");
-      }
-
-      const result = (await response.json()) as { message: string };
-      toast({
-        title: "成功",
-        description: result.message,
-      });
-
-      // 重新获取卡密列表
-      fetchCardKeys();
-    } catch (error) {
-      toast({
-        title: "错误",
-        description:
-          error instanceof Error ? error.message : "清理过期卡密失败",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (!canManageCardKeys) {
     return (
       <div className="container mx-auto py-8">
@@ -223,66 +194,56 @@ export default function CardKeysPage() {
           </Button>
           <h1 className="text-3xl font-bold">卡密管理</h1>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={cleanupExpiredCardKeys}
-            className="gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            清理过期卡密
-          </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              生成卡密
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>生成卡密</DialogTitle>
+              <DialogDescription>
+                为指定的邮箱地址生成卡密，每行一个邮箱地址
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="emails">邮箱地址</Label>
+                <Textarea
+                  id="emails"
+                  placeholder="user1@example.com
+user2@example.com"
+                  value={emailAddresses}
+                  onChange={(e) => setEmailAddresses(e.target.value)}
+                  rows={5}
+                />
+              </div>
+              <div>
+                <Label htmlFor="expiry">有效期（天）</Label>
+                <Input
+                  id="expiry"
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={expiryDays}
+                  onChange={(e) => setExpiryDays(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={generateCardKeys}
+                disabled={generating}
+                className="w-full"
+              >
+                {generating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 生成卡密
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>生成卡密</DialogTitle>
-                <DialogDescription>
-                  为指定的邮箱地址生成卡密，每行一个邮箱地址
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="emails">邮箱地址</Label>
-                  <Textarea
-                    id="emails"
-                    placeholder="user1@example.com
-user2@example.com"
-                    value={emailAddresses}
-                    onChange={(e) => setEmailAddresses(e.target.value)}
-                    rows={5}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expiry">有效期（天）</Label>
-                  <Input
-                    id="expiry"
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={expiryDays}
-                    onChange={(e) => setExpiryDays(e.target.value)}
-                  />
-                </div>
-                <Button
-                  onClick={generateCardKeys}
-                  disabled={generating}
-                  className="w-full"
-                >
-                  {generating && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  生成卡密
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {loading ? (
@@ -324,26 +285,14 @@ user2@example.com"
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex flex-col gap-1">
-                      <Badge variant={cardKey.isUsed ? "secondary" : "default"}>
-                        {cardKey.isUsed ? "已使用" : "未使用"}
-                      </Badge>
-                      {new Date(cardKey.expiresAt) < new Date() && (
-                        <Badge variant="destructive" className="text-xs">
-                          已过期
-                        </Badge>
-                      )}
-                    </div>
-                    {(!cardKey.isUsed || new Date(cardKey.expiresAt) < new Date()) && (
+                    <Badge variant={cardKey.isUsed ? "secondary" : "default"}>
+                      {cardKey.isUsed ? "已使用" : "未使用"}
+                    </Badge>
+                    {!cardKey.isUsed && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteCardKey(cardKey.id)}
-                        title={
-                          cardKey.isUsed && new Date(cardKey.expiresAt) < new Date()
-                            ? "删除过期的已使用卡密"
-                            : "删除未使用卡密"
-                        }
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
