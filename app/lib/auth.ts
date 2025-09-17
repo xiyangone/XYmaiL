@@ -312,11 +312,53 @@ export const {
   },
   callbacks: {
     async jwt({ token, user }) {
+      // 第一次登录（含 OAuth）时，尝试将 token 绑定到本地 DB 的用户ID
       if (user) {
-        token.id = user.id;
-        token.name = user.name || user.username;
-        token.username = user.username;
-        token.image = user.image || generateAvatarUrl(token.name as string);
+        try {
+          const db = createDb();
+          let dbUser: any = null;
+          // 优先用邮箱匹配到本地用户（OAuth 常见）
+          if ((user as any).email) {
+            dbUser = await db.query.users.findFirst({
+              where: eq(users.email, (user as any).email as string),
+            });
+          }
+          // 再尝试用 username（凭证/卡密登录常见）
+          if (!dbUser && (user as any).username) {
+            dbUser = await db.query.users.findFirst({
+              where: eq(users.username, (user as any).username as string),
+            });
+          }
+
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.name =
+              dbUser.name ||
+              dbUser.username ||
+              (user as any).name ||
+              (user as any).username;
+            token.username = dbUser.username || (user as any).username;
+            token.image =
+              dbUser.image ||
+              (user as any).image ||
+              generateAvatarUrl((token.name as string) || "user");
+          } else {
+            // 兜底：保留 NextAuth 提供的 user 字段（凭证登录会带有 id）
+            token.id = (user as any).id;
+            token.name = (user as any).name || (user as any).username;
+            token.username = (user as any).username;
+            token.image =
+              (user as any).image ||
+              generateAvatarUrl(((user as any).name as string) || "user");
+          }
+        } catch (e) {
+          // 出错时不吞异常，打印日志并保持原始 token，避免阻断登录流程
+          console.warn("[auth.jwt] ", e);
+          token.id = (user as any).id ?? token.id;
+          token.name = (user as any).name ?? token.name;
+          token.username = (user as any).username ?? token.username;
+          token.image = (user as any).image ?? token.image;
+        }
       }
       return token;
     },
