@@ -40,7 +40,7 @@ export default function CardKeysPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [emailAddresses, setEmailAddresses] = useState("");
-  const [expiryDays, setExpiryDays] = useState("30");
+  const [expiryDays, setExpiryDays] = useState("7");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
