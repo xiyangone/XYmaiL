@@ -140,9 +140,14 @@ export default function CardKeysPage() {
     });
   };
 
-  const deleteCardKey = async (id: string) => {
+  const deleteCardKey = async (item: CardKey) => {
+    const confirmText = item.isUsed
+      ? "该卡密已被使用，将一并删除关联临时账户，确认删除？"
+      : "确认删除该卡密？";
+    if (typeof window !== "undefined" && !window.confirm(confirmText)) return;
+
     try {
-      const response = await fetch(`/api/admin/card-keys?id=${id}`, {
+      const response = await fetch(`/api/admin/card-keys?id=${item.id}`, {
         method: "DELETE",
       });
 
@@ -153,7 +158,7 @@ export default function CardKeysPage() {
 
       toast({
         title: "成功",
-        description: "卡密删除成功",
+        description: item.isUsed ? "卡密与关联临时账户已删除" : "卡密删除成功",
       });
       fetchCardKeys();
     } catch (error) {
@@ -279,24 +284,31 @@ user2@example.com"
                       过期时间: {new Date(cardKey.expiresAt).toLocaleString()}
                     </p>
                     {cardKey.isUsed && cardKey.usedBy && (
-                      <p className="text-sm text-muted-foreground">
-                        使用者: {cardKey.usedBy.name || cardKey.usedBy.username}
-                      </p>
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          使用者:{" "}
+                          {cardKey.usedBy.name || cardKey.usedBy.username}
+                        </p>
+                        {cardKey.usedAt && (
+                          <p className="text-sm text-muted-foreground">
+                            使用时间:{" "}
+                            {new Date(cardKey.usedAt).toLocaleString()}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={cardKey.isUsed ? "secondary" : "default"}>
                       {cardKey.isUsed ? "已使用" : "未使用"}
                     </Badge>
-                    {!cardKey.isUsed && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteCardKey(cardKey.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteCardKey(cardKey)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>

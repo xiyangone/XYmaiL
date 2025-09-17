@@ -74,89 +74,103 @@ export async function activateCardKey(code: string) {
     emailAddress: cardKey.emailAddress,
   });
 
-  // 创建临时用户
-  const tempUser = await db
-    .insert(users)
-    .values({
-      name: `临时用户_${cardKey.emailAddress.split("@")[0]}`,
-      email: cardKey.emailAddress,
-      username: `temp_${nanoid(8)}`,
-    })
-    .returning();
+  let userId: string | null = null;
+  const now = new Date();
 
-  const userId = tempUser[0].id;
-  console.log("[CARD-KEY] 用户创建成功", {
-    userId,
-    username: tempUser[0].username,
-  });
-
-  // 分配临时用户角色
-  console.log("[CARD-KEY] 开始分配角色");
-  const tempRole = await db.query.roles.findFirst({
-    where: eq(roles.name, ROLES.TEMP_USER),
-  });
-
-  if (!tempRole) {
-    console.log("[CARD-KEY] 临时用户角色不存在，创建新角色");
-    // 如果临时用户角色不存在，创建它
-    const [newRole] = await db
-      .insert(roles)
+  try {
+    // 创建临时用户
+    const tempUser = await db
+      .insert(users)
       .values({
-        name: ROLES.TEMP_USER,
-        description: "临时用户，只能访问绑定的邮箱",
+        name: `临时用户_${cardKey.emailAddress.split("@")[0]}`,
+        email: cardKey.emailAddress,
+        username: `temp_${nanoid(8)}`,
       })
       .returning();
 
-    console.log("[CARD-KEY] 新角色创建成功", { roleId: newRole.id });
-    await assignRoleToUser(db, userId, newRole.id);
-  } else {
-    console.log("[CARD-KEY] 使用现有临时用户角色", { roleId: tempRole.id });
-    await assignRoleToUser(db, userId, tempRole.id);
+    userId = tempUser[0].id;
+    console.log("[CARD-KEY] 用户创建成功", {
+      userId,
+      username: tempUser[0].username,
+    });
+
+    // 分配临时用户角色
+    console.log("[CARD-KEY] 开始分配角色");
+    const tempRole = await db.query.roles.findFirst({
+      where: eq(roles.name, ROLES.TEMP_USER),
+    });
+
+    if (!tempRole) {
+      console.log("[CARD-KEY] 临时用户角色不存在，创建新角色");
+      const [newRole] = await db
+        .insert(roles)
+        .values({
+          name: ROLES.TEMP_USER,
+          description: "临时用户，只能访问绑定的邮箱",
+        })
+        .returning();
+
+      console.log("[CARD-KEY] 新角色创建成功", { roleId: newRole.id });
+      await assignRoleToUser(db, userId, newRole.id);
+    } else {
+      console.log("[CARD-KEY] 使用现有临时用户角色", { roleId: tempRole.id });
+      await assignRoleToUser(db, userId, tempRole.id);
+    }
+    console.log("[CARD-KEY] 角色分配完成");
+
+    // 创建绑定的邮箱地址（7天有效）
+    const emailExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    await db.insert(emails).values({
+      address: cardKey.emailAddress,
+      userId: userId,
+      createdAt: now,
+      expiresAt: emailExpiresAt,
+    });
+
+    // 创建临时账号记录
+    await db.insert(tempAccounts).values({
+      userId: userId,
+      cardKeyId: cardKey.id,
+      emailAddress: cardKey.emailAddress,
+      createdAt: now,
+      expiresAt: emailExpiresAt,
+    });
+
+    // 最后一步才标记卡密为已使用（减少失败时的回滚工作量）
+    console.log("[CARD-KEY] 标记卡密为已使用");
+    await db
+      .update(cardKeys)
+      .set({
+        isUsed: true,
+        usedBy: userId,
+        usedAt: now,
+      })
+      .where(eq(cardKeys.id, cardKey.id));
+
+    console.log("[CARD-KEY] 卡密激活完成", {
+      userId,
+      emailAddress: cardKey.emailAddress,
+      expiresAt: emailExpiresAt,
+    });
+
+    return {
+      userId,
+      emailAddress: cardKey.emailAddress,
+      expiresAt: emailExpiresAt,
+    };
+  } catch (error) {
+    console.error("[CARD-KEY] 激活流程失败，开始回滚", error);
+    // 失败补偿：若已创建用户，则删除用户以级联清理相关记录
+    if (userId) {
+      try {
+        await db.delete(users).where(eq(users.id, userId));
+      } catch (cleanupErr) {
+        console.error("[CARD-KEY] 回滚失败（删除用户）:", cleanupErr);
+      }
+    }
+    throw error;
   }
-  console.log("[CARD-KEY] 角色分配完成");
-
-  // 创建绑定的邮箱地址
-  const now = new Date();
-  const emailExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7天后过期
-
-  await db.insert(emails).values({
-    address: cardKey.emailAddress,
-    userId: userId,
-    createdAt: now,
-    expiresAt: emailExpiresAt,
-  });
-
-  // 创建临时账号记录
-  await db.insert(tempAccounts).values({
-    userId: userId,
-    cardKeyId: cardKey.id,
-    emailAddress: cardKey.emailAddress,
-    createdAt: now,
-    expiresAt: emailExpiresAt,
-  });
-
-  // 标记卡密为已使用
-  console.log("[CARD-KEY] 标记卡密为已使用");
-  await db
-    .update(cardKeys)
-    .set({
-      isUsed: true,
-      usedBy: userId,
-      usedAt: now,
-    })
-    .where(eq(cardKeys.id, cardKey.id));
-
-  console.log("[CARD-KEY] 卡密激活完成", {
-    userId,
-    emailAddress: cardKey.emailAddress,
-    expiresAt: emailExpiresAt,
-  });
-
-  return {
-    userId,
-    emailAddress: cardKey.emailAddress,
-    expiresAt: emailExpiresAt,
-  };
 }
 
 /**
@@ -214,7 +228,13 @@ export async function cleanupExpiredTempAccounts() {
     // 删除用户及相关数据（级联删除会处理邮箱和消息）
     await db.delete(users).where(eq(users.id, account.userId));
 
-    // 标记临时账号为非活跃
+    // 释放卡密绑定（删除用户会将 usedBy 置空，这里同时重置 isUsed/usedAt）
+    await db
+      .update(cardKeys)
+      .set({ isUsed: false, usedBy: null, usedAt: null })
+      .where(eq(cardKeys.id, account.cardKeyId));
+
+    // 标记临时账号为非活跃（若已因级联被删除，该更新将影响 0 行）
     await db
       .update(tempAccounts)
       .set({ isActive: false })
