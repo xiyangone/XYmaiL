@@ -128,6 +128,12 @@ export const {
   secret: AUTH_SECRET,
   // 允许在反向代理/Edge 环境下基于请求头动态推断主机名（当未设置 NEXTAUTH_URL 时尤为重要）
   trustHost: true,
+  // 临时日志：仅用于排查凭证回调/会话签发问题（部署稳定后可移除或降级）
+  logger: {
+    error: (...args) => console.error("[auth.error]", ...args),
+    warn: (...args) => console.warn("[auth.warn]", ...args),
+    debug: (...args) => console.debug("[auth.debug]", ...args),
+  },
   providers: [
     ...(AUTH_GITHUB_ID && AUTH_GITHUB_SECRET
       ? [

@@ -155,6 +155,7 @@ export function LoginForm() {
       const result = await signIn("credentials", {
         cardKey,
         redirect: false,
+        callbackUrl: "/",
       });
 
       console.log("[LOGIN] NextAuth登录结果", {

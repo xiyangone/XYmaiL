@@ -419,6 +419,56 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
 - 🗑️ **自动清理**：过期账号会被自动删除，无法恢复
 - 👑 **管理权限**：只有皇帝角色可以生成和管理卡密
 
+### 卡密登录（Credentials）调试指南（Cloudflare）
+
+> 适用于 Cloudflare Pages/Workers（Edge 运行时）+ NextAuth.js。若登录后 `/api/auth/session` 返回 `null` 或回调提示 `Configuration`，请按以下步骤排查。
+
+1. 环境与域名一致性
+
+- 确保用于访问的域名（推荐主域，如 `https://xiyangone.online`）对应的部署“Functions 运行时”中已设置：`AUTH_SECRET`（或 `NEXTAUTH_SECRET`）。
+- 若你有多个域（如 dpdns.org），每个域的对应部署都要分别配置 `AUTH_SECRET`，Cookie 不能跨域共享。
+- 可选但推荐：设置 `NEXTAUTH_URL=https://你的主域`，并在 NextAuth 配置启用 `trustHost: true`（本项目已启用）。
+
+2. 清理/隔离 Cookie 干扰
+
+- 使用隐身窗口或清理这两个 Cookie：`__Secure-authjs.callback-url`、`__Host-authjs.csrf-token`。
+- 先访问 `https://你的主域/api/auth/csrf`，确认返回 `{ csrfToken: "..." }`，并在“该域”出现 csrf Cookie。
+
+3. 执行卡密登录并检查回调
+
+- 登录页选择“卡密登录”，输入卡密提交。
+- 打开浏览器 Network 面板，检查 `/api/auth/callback/credentials`：
+  - `:authority` 必须是你的主域（例如 xiyangone.online），不是其它域。
+  - 响应应为 `200`，并且响应头应包含 `Set-Cookie`（例如 `__Host-authjs.session-token=...; Path=/; Secure;`）。
+  - 若无 `Set-Cookie`，通常表示未签发会话（多为 `AUTH_SECRET` 缺失/不可读导致的 `Configuration`）。
+
+4. 查看 session
+
+- 打开 `https://你的主域/api/auth/session`，应返回包含 `user.id / user.username / roles` 等字段的 JSON。
+- 若仍为 `null`：
+  - 回到上一步确认回调是否带了 `Set-Cookie`；
+  - 确认浏览器是否保存了 Cookie（Application → Cookies）。
+
+5. 启用服务端日志（已内置）
+
+- 本项目在 `app/lib/auth.ts` 中已临时加入 NextAuth `logger`：会在 Cloudflare Functions 日志打印 `[auth.error] / [auth.warn] / [auth.debug]`；
+- 观察 `/api/auth/callback/credentials` 调用时的函数日志，定位是否出现 `Configuration` 或签发失败的堆栈；稳定后可移除或降级日志级别。
+
+6. 常见问题
+
+- `Configuration`：90% 为 `AUTH_SECRET` 未在“当前域的 Functions 运行时”可用；确保是在 Production 环境而非仅 Preview；并重新部署。
+- 多域混淆：浏览器保存了指向其他域的 `__Secure-authjs.callback-url`，导致回调写到别的域，主域读不到会话 → 用隐身窗口或清理上述 Cookie。
+- `net::ERR_BLOCKED_BY_CLIENT`：多为浏览器扩展拦截（如广告/统计脚本，Cloudflare Insights）。与登录无关，可忽略或在浏览器禁用该扩展；若在 Cloudflare 后台启用了 Web Analytics，可临时关闭以避免噪声。
+
+7. 实现细节（本项目）
+
+- 卡密登录合并在 `Credentials` Provider 的 `authorize` 分支中，前端使用：
+  ```tsx
+  await signIn("credentials", { cardKey, redirect: false, callbackUrl: "/" });
+  ```
+- 服务端环境变量读取：优先 `process.env`，其次 `getRequestContext().env`，确保 Edge 运行时可读密钥。
+- Session 策略：`jwt`，并在 `jwt/session` 回调中将 `token.id/username/image` 等绑定到本地用户并附加角色。
+
 ## 系统设置
 
 系统设置存储在 Cloudflare KV 中，包括以下内容：
