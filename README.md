@@ -411,6 +411,18 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
    wrangler deploy --config wrangler.temp-cleanup.json
    ```
 
+   **或使用 Cloudflare Pages 的 Scheduled Triggers（推荐）**
+
+   1. 进入 Cloudflare Dashboard → Pages → 你的项目 → Triggers → Scheduled Triggers
+   2. 新建 Cron 规则（示例：每小时 `0 * * * *`，或每 30 分钟 `*/30 * * * *`）
+   3. 请求地址：`https://你的域名/api/cleanup/temp-accounts`（GET 即可）
+   4. 保存后生效。建议在非高峰时段运行。
+
+   可选安全加固：
+
+   - 使用 Cloudflare Access 保护该路径，仅允许服务账户访问
+   - 或在 WAF/防火墙中限制来源 IP（Pages 触发为平台内部流量通常安全）
+
 ### 注意事项
 
 - 🔐 **安全性**：卡密一次性使用，使用后无法重复使用
@@ -466,6 +478,12 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
   ```tsx
   await signIn("credentials", { cardKey, redirect: false, callbackUrl: "/" });
   ```
+- `CLEANUP_DELETE_USED_EXPIRED_CARD_KEYS`: 是否在自动清理中删除“已使用且已过期”的卡密，`true/false`，默认 `true`
+- `CLEANUP_DELETE_EXPIRED_EMAILS`: 是否自动清理“已过期邮箱”（会级联删除其消息），`true/false`，默认 `true`
+- `CARD_KEY_DEFAULT_DAYS`: 卡密默认有效期（天），数值，默认 `7`
+
+> 以上三项可在个人中心 → 网站设置 中以开关/输入框形式可视化配置，无需直接编辑 KV。
+
 - 服务端环境变量读取：优先 `process.env`，其次 `getRequestContext().env`，确保 Edge 运行时可读密钥。
 - Session 策略：`jwt`，并在 `jwt/session` 回调中将 `token.id/username/image` 等绑定到本地用户并附加角色。
 
