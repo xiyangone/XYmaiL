@@ -13,6 +13,24 @@ import { generateAvatarUrl } from "./avatar";
 import { getUserId } from "./apiKey";
 import { activateCardKey } from "./card-keys";
 
+// 读取环境变量（优先 process.env，其次 Cloudflare Pages Functions 的 runtime env）
+function readEnv(key: string): string | undefined {
+  const fromProcess = (globalThis as any).process?.env?.[key] as
+    | string
+    | undefined;
+  if (fromProcess) return fromProcess;
+  try {
+    const runtimeEnv = (getRequestContext() as any)?.env as Record<string, any>;
+    return (runtimeEnv?.[key] as string) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+const AUTH_SECRET = readEnv("AUTH_SECRET") ?? readEnv("NEXTAUTH_SECRET");
+const AUTH_GITHUB_ID = readEnv("AUTH_GITHUB_ID") ?? readEnv("GITHUB_ID");
+const AUTH_GITHUB_SECRET =
+  readEnv("AUTH_GITHUB_SECRET") ?? readEnv("GITHUB_SECRET");
+
 const ROLE_DESCRIPTIONS: Record<Role, string> = {
   [ROLES.EMPEROR]: "皇帝（网站所有者）",
   [ROLES.DUKE]: "公爵（超级用户）",
@@ -107,15 +125,15 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
-  secret: process.env.AUTH_SECRET,
+  secret: AUTH_SECRET,
   // 允许在反向代理/Edge 环境下基于请求头动态推断主机名（当未设置 NEXTAUTH_URL 时尤为重要）
   trustHost: true,
   providers: [
-    ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
+    ...(AUTH_GITHUB_ID && AUTH_GITHUB_SECRET
       ? [
           GitHub({
-            clientId: process.env.AUTH_GITHUB_ID!,
-            clientSecret: process.env.AUTH_GITHUB_SECRET!,
+            clientId: AUTH_GITHUB_ID,
+            clientSecret: AUTH_GITHUB_SECRET,
           }),
         ]
       : []),
