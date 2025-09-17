@@ -444,6 +444,31 @@ const deployCleanupWorker = () => {
 };
 
 /**
+ * 部署Card Key Cleanup Worker
+ */
+const deployCardKeyCleanupWorker = () => {
+  console.log("🚧 Deploying Card Key Cleanup Worker...");
+  try {
+    // 检查配置文件是否存在
+    if (!existsSync(resolve("wrangler.card-key-cleanup.json"))) {
+      console.log(
+        "⚠️ wrangler.card-key-cleanup.json not found, skipping card key cleanup worker deployment"
+      );
+      return;
+    }
+
+    execSync(
+      "pnpm dlx wrangler deploy --config wrangler.card-key-cleanup.json",
+      { stdio: "inherit" }
+    );
+    console.log("✅ Card Key Cleanup Worker deployed successfully");
+  } catch (error) {
+    console.error("❌ Card Key Cleanup Worker deployment failed:", error);
+    // 继续执行而不中断
+  }
+};
+
+/**
  * 创建或更新环境变量文件
  */
 const setupEnvFile = () => {
@@ -527,6 +552,7 @@ const main = async () => {
     deployPages();
     deployEmailWorker();
     deployCleanupWorker();
+    deployCardKeyCleanupWorker();
 
     console.log("🎉 Deployment completed successfully");
   } catch (error) {
