@@ -152,7 +152,7 @@ export function LoginForm() {
     console.log("[LOGIN] 开始卡密登录", { cardKey: "***" + cardKey.slice(-4) });
     setLoading(true);
     try {
-      const result = await signIn("card-key", {
+      const result = await signIn("credentials", {
         cardKey,
         redirect: false,
       });

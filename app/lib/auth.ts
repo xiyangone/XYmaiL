@@ -122,6 +122,7 @@ export const {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
+        // 支持两种方式：1) 用户名/密码 2) 卡密
         username: {
           label: "用户名",
           type: "text",
@@ -132,103 +133,58 @@ export const {
           type: "password",
           placeholder: "请输入密码",
         },
+        cardKey: {
+          label: "卡密",
+          type: "text",
+          placeholder: "XYMAIL-XXXX-XXXX-XXXX",
+        },
       },
       async authorize(credentials) {
-        if (!credentials) {
-          throw new Error("请输入用户名和密码");
+        if (!credentials) throw new Error("请输入登录信息");
+
+        // 分支A：卡密登录
+        if (credentials.cardKey && String(credentials.cardKey).trim()) {
+          console.log("[AUTH] 卡密登录(Credentials)", {
+            cardKey: "***" + String(credentials.cardKey).slice(-4),
+          });
+          try {
+            const result = await activateCardKey(String(credentials.cardKey));
+            const db = createDb();
+            const user = await db.query.users.findFirst({
+              where: eq(users.id, result.userId),
+            });
+            if (!user) throw new Error("用户创建失败");
+            return { ...user, password: undefined } as any;
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : "卡密登录失败";
+            console.warn("[AUTH] 卡密登录失败(Credentials)", msg);
+            throw new Error(msg);
+          }
         }
 
-        const { username, password } = credentials;
+        // 分支B：用户名/密码
+        const { username, password } = credentials as any;
+        if (!username || !password) throw new Error("请输入用户名和密码");
 
         try {
           authSchema.parse({ username, password });
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (error) {
+        } catch {
           throw new Error("输入格式不正确");
         }
 
         const db = createDb();
-
         const user = await db.query.users.findFirst({
-          where: eq(users.username, username as string),
+          where: eq(users.username, String(username)),
         });
-
-        if (!user) {
-          throw new Error("用户名或密码错误");
-        }
+        if (!user) throw new Error("用户名或密码错误");
 
         const isValid = await comparePassword(
-          password as string,
+          String(password),
           user.password as string
         );
-        if (!isValid) {
-          throw new Error("用户名或密码错误");
-        }
+        if (!isValid) throw new Error("用户名或密码错误");
 
-        return {
-          ...user,
-          password: undefined,
-        };
-      },
-    }),
-    CredentialsProvider({
-      id: "card-key",
-      name: "卡密登录",
-      credentials: {
-        cardKey: {
-          label: "卡密",
-          type: "text",
-          placeholder: "请输入卡密",
-        },
-      },
-      async authorize(credentials) {
-        console.log("[AUTH] 卡密登录开始", {
-          cardKey: credentials?.cardKey
-            ? "***" + (credentials.cardKey as string).slice(-4)
-            : "未提供",
-        });
-
-        if (!credentials?.cardKey) {
-          console.log("[AUTH] 卡密登录失败: 未提供卡密");
-          throw new Error("请输入卡密");
-        }
-
-        const { cardKey } = credentials;
-
-        try {
-          console.log("[AUTH] 开始验证卡密", {
-            cardKey: "***" + (cardKey as string).slice(-4),
-          });
-          // 验证并使用卡密
-          const result = await activateCardKey(cardKey as string);
-          console.log("[AUTH] 卡密验证成功", {
-            userId: result.userId,
-            emailAddress: result.emailAddress,
-          });
-
-          // 获取创建的用户信息
-          const db = createDb();
-          const user = await db.query.users.findFirst({
-            where: eq(users.id, result.userId),
-          });
-
-          if (!user) {
-            throw new Error("用户创建失败");
-          }
-
-          return {
-            ...user,
-            password: undefined,
-          };
-        } catch (error) {
-          console.log("[AUTH] 卡密验证失败", {
-            error: error instanceof Error ? error.message : "未知错误",
-            stack: error instanceof Error ? error.stack : undefined,
-          });
-          throw new Error(
-            error instanceof Error ? error.message : "卡密验证失败"
-          );
-        }
+        return { ...user, password: undefined } as any;
       },
     }),
   ],
