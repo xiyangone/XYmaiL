@@ -157,3 +157,55 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "更新用户角色失败" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "未授权" }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
+    if (!userId) {
+      return NextResponse.json({ error: "缺少 userId" }, { status: 400 });
+    }
+
+    const db = createDb();
+
+    // 当前用户权限校验
+    const currentUser = await db.query.users.findFirst({
+      where: eq(users.id, session.user.id),
+      with: { userRoles: { with: { role: true } } },
+    });
+    if (!currentUser) {
+      return NextResponse.json({ error: "用户不存在" }, { status: 404 });
+    }
+    const userRoleNames = currentUser.userRoles.map(
+      (ur) => ur.role.name
+    ) as string[];
+    if (!hasPermission(userRoleNames as any, PERMISSIONS.PROMOTE_USER)) {
+      return NextResponse.json({ error: "权限不足" }, { status: 403 });
+    }
+
+    // 目标用户校验：禁止删除皇帝账号
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      with: { userRoles: { with: { role: true } } },
+    });
+    if (!target) {
+      return NextResponse.json({ error: "目标用户不存在" }, { status: 404 });
+    }
+    const isEmperor = target.userRoles.some((ur) => ur.role.name === "emperor");
+    if (isEmperor) {
+      return NextResponse.json({ error: "禁止删除皇帝账号" }, { status: 403 });
+    }
+
+    await db.delete(users).where(eq(users.id, userId));
+
+    return NextResponse.json({ success: true, message: "用户已删除" });
+  } catch (error) {
+    console.error("Failed to delete user:", error);
+    return NextResponse.json({ error: "删除用户失败" }, { status: 500 });
+  }
+}

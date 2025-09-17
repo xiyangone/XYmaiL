@@ -13,6 +13,7 @@ import {
   Shield,
   Sword,
   User,
+  Trash2,
 } from "lucide-react";
 import {
   Select,
@@ -146,6 +147,30 @@ export default function UsersPage() {
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    try {
+      setUpdating(userId);
+      const response = await fetch(
+        `/api/admin/users?userId=${encodeURIComponent(userId)}`,
+        { method: "DELETE" }
+      );
+      const data = (await response.json().catch(() => null)) as any;
+      if (!response.ok) {
+        throw new Error(data?.error || "删除用户失败");
+      }
+      toast({ title: "成功", description: data?.message || "用户已删除" });
+      fetchUsers();
+    } catch (error) {
+      toast({
+        title: "错误",
+        description: error instanceof Error ? error.message : "删除用户失败",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   if (!canManageUsers) {
     return (
       <div className="container mx-auto py-8">
@@ -242,27 +267,40 @@ export default function UsersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={user.role}
-                          onValueChange={(newRole) =>
-                            updateUserRole(user.id, newRole)
-                          }
-                          disabled={updating === user.id}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {roleOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={user.role}
+                            onValueChange={(newRole) =>
+                              updateUserRole(user.id, newRole)
+                            }
+                            disabled={updating === user.id}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roleOptions.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="ml-2"
+                            disabled={
+                              updating === user.id || user.role === "emperor"
+                            }
+                            onClick={() => deleteUser(user.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

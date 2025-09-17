@@ -115,8 +115,8 @@ export default function CardKeysPage() {
         description: data.message,
       });
 
-      // 下载生成的卡密
-      downloadCardKeys(data.cardKeys);
+      // 注意：不再自动下载 TXT，避免浏览器自动下载文件造成干扰
+      // 如需导出，请在列表中手动复制
 
       setDialogOpen(false);
       setEmailAddresses("");
@@ -130,22 +130,6 @@ export default function CardKeysPage() {
     } finally {
       setGenerating(false);
     }
-  };
-
-  const downloadCardKeys = (keys: { code: string; emailAddress: string }[]) => {
-    const content = keys
-      .map((key) => `${key.code} - ${key.emailAddress}`)
-      .join("\n");
-
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `card-keys-${new Date().toISOString().split("T")[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const copyToClipboard = (text: string) => {
