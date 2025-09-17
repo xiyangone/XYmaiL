@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Plus, Trash2, Copy } from "lucide-react";
+import { Loader2, Plus, Trash2, Copy, ArrowLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRolePermission } from "@/hooks/use-role-permission";
 import { PERMISSIONS } from "@/lib/permissions";
+import { useRouter } from "next/navigation";
 
 interface CardKey {
   id: string;
@@ -44,6 +45,7 @@ export default function CardKeysPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
+  const router = useRouter();
 
   const canManageCardKeys = checkPermission(PERMISSIONS.MANAGE_CARD_KEYS);
 
@@ -196,7 +198,18 @@ export default function CardKeysPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">卡密管理</h1>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回
+          </Button>
+          <h1 className="text-3xl font-bold">卡密管理</h1>
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>

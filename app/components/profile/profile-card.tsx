@@ -13,6 +13,7 @@ import {
   Gem,
   Mail,
   CreditCard,
+  Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { WebhookConfig } from "./webhook-config";
@@ -41,6 +42,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
   const canPromote = checkPermission(PERMISSIONS.PROMOTE_USER);
   const canManageConfig = checkPermission(PERMISSIONS.MANAGE_CONFIG);
   const canManageCardKeys = checkPermission(PERMISSIONS.MANAGE_CARD_KEYS);
+  const canManageUsers = checkPermission(PERMISSIONS.PROMOTE_USER);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -124,6 +126,22 @@ export function ProfileCard({ user }: ProfileCardProps) {
           >
             <CreditCard className="w-4 h-4" />
             管理卡密
+          </Button>
+        </div>
+      )}
+
+      {canManageUsers && (
+        <div className="bg-background rounded-lg border-2 border-primary/20 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">用户管理</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            管理系统用户，查看和修改用户角色权限
+          </p>
+          <Button onClick={() => router.push("/admin/users")} className="gap-2">
+            <Users className="w-4 h-4" />
+            管理用户
           </Button>
         </div>
       )}
