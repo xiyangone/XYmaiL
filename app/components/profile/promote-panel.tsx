@@ -1,77 +1,81 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Gem, Sword, User2, Loader2 } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { useState } from "react"
-import { useToast } from "@/components/ui/use-toast"
-import { ROLES, Role } from "@/lib/permissions"
+import { Button } from "@/components/ui/button";
+import { Gem, Sword, User2, Loader2, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { ROLES, Role } from "@/lib/permissions";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
 const roleIcons = {
   [ROLES.DUKE]: Gem,
   [ROLES.KNIGHT]: Sword,
   [ROLES.CIVILIAN]: User2,
-} as const
+  [ROLES.TEMP_USER]: Clock,
+} as const;
 
 const roleNames = {
   [ROLES.DUKE]: "公爵",
   [ROLES.KNIGHT]: "骑士",
   [ROLES.CIVILIAN]: "平民",
-} as const
+  [ROLES.TEMP_USER]: "临时用户",
+} as const;
 
-type RoleWithoutEmperor = Exclude<Role, typeof ROLES.EMPEROR>
+type RoleWithoutEmperor = Exclude<Role, typeof ROLES.EMPEROR>;
 
 export function PromotePanel() {
-  const [searchText, setSearchText] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [targetRole, setTargetRole] = useState<RoleWithoutEmperor>(ROLES.KNIGHT)
-  const { toast } = useToast()
+  const [searchText, setSearchText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [targetRole, setTargetRole] = useState<RoleWithoutEmperor>(
+    ROLES.KNIGHT
+  );
+  const { toast } = useToast();
 
   const handleAction = async () => {
-    if (!searchText) return
+    if (!searchText) return;
 
-    setLoading(true)
+    setLoading(true);
     try {
       const res = await fetch("/api/roles/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ searchText })
-      })
-      const data = await res.json() as {
+        body: JSON.stringify({ searchText }),
+      });
+      const data = (await res.json()) as {
         user?: {
-          id: string
-          name?: string
-          username?: string
-          email: string
-          role?: string
-        }
-        error?: string
-      }
+          id: string;
+          name?: string;
+          username?: string;
+          email: string;
+          role?: string;
+        };
+        error?: string;
+      };
 
-      if (!res.ok) throw new Error(data.error || "未知错误")
+      if (!res.ok) throw new Error(data.error || "未知错误");
 
       if (!data.user) {
         toast({
           title: "未找到用户",
           description: "请确认用户名或邮箱地址是否正确",
-          variant: "destructive"
-        })
-        return
+          variant: "destructive",
+        });
+        return;
       }
 
       if (data.user.role === targetRole) {
         toast({
           title: `用户已是${roleNames[targetRole]}`,
           description: "无需重复设置",
-        })
-        return
+        });
+        return;
       }
 
       const promoteRes = await fetch("/api/roles/promote", {
@@ -79,32 +83,34 @@ export function PromotePanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: data.user.id,
-          roleName: targetRole
-        })
-      })
+          roleName: targetRole,
+        }),
+      });
 
       if (!promoteRes.ok) {
-        const error = await promoteRes.json() as { error: string }
-        throw new Error(error.error || "设置失败")
+        const error = (await promoteRes.json()) as { error: string };
+        throw new Error(error.error || "设置失败");
       }
 
       toast({
         title: "设置成功",
-        description: `已将用户 ${data.user.username || data.user.email} 设为${roleNames[targetRole]}`,
-      })
-      setSearchText("")
+        description: `已将用户 ${data.user.username || data.user.email} 设为${
+          roleNames[targetRole]
+        }`,
+      });
+      setSearchText("");
     } catch (error) {
       toast({
         title: "设置失败",
         description: error instanceof Error ? error.message : "请稍后重试",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const Icon = roleIcons[targetRole]
+  const Icon = roleIcons[targetRole];
 
   return (
     <div className="bg-background rounded-lg border-2 border-primary/20 p-6">
@@ -122,7 +128,12 @@ export function PromotePanel() {
               placeholder="输入用户名或邮箱"
             />
           </div>
-          <Select value={targetRole} onValueChange={(value) => setTargetRole(value as RoleWithoutEmperor)}>
+          <Select
+            value={targetRole}
+            onValueChange={(value) =>
+              setTargetRole(value as RoleWithoutEmperor)
+            }
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -162,5 +173,5 @@ export function PromotePanel() {
         </Button>
       </div>
     </div>
-  )
-} 
+  );
+}

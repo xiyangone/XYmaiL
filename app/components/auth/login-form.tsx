@@ -26,6 +26,7 @@ export function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [cardKey, setCardKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const { toast } = useToast();
@@ -138,6 +139,48 @@ export function LoginForm() {
     }
   };
 
+  const handleCardKeyLogin = async () => {
+    if (!cardKey.trim()) {
+      toast({
+        title: "错误",
+        description: "请输入卡密",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await signIn("card-key", {
+        cardKey,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast({
+          title: "卡密登录失败",
+          description: result.error,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      toast({
+        title: "登录成功",
+        description: "欢迎使用临时邮箱服务",
+      });
+      window.location.href = "/";
+    } catch (error) {
+      toast({
+        title: "卡密登录失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
   const handleGithubLogin = () => {
     signIn("github", { callbackUrl: "/" });
   };
@@ -146,6 +189,7 @@ export function LoginForm() {
     setUsername("");
     setPassword("");
     setConfirmPassword("");
+    setCardKey("");
     setErrors({});
   };
 
@@ -161,9 +205,10 @@ export function LoginForm() {
       </CardHeader>
       <CardContent className="px-6">
         <Tabs defaultValue="login" className="w-full" onValueChange={clearForm}>
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="login">登录</TabsTrigger>
             <TabsTrigger value="register">注册</TabsTrigger>
+            <TabsTrigger value="cardkey">卡密</TabsTrigger>
           </TabsList>
           <div className="min-h-[220px]">
             <TabsContent value="login" className="space-y-4 mt-0">
@@ -230,7 +275,7 @@ export function LoginForm() {
                   disabled={loading}
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  登录 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
+                  登录
                 </Button>
 
                 <div className="relative">
@@ -250,7 +295,7 @@ export function LoginForm() {
                   onClick={handleGithubLogin}
                 >
                   <Github className="mr-2 h-4 w-4" />
-                  使用 GitHub 账号登录 (◡ ‿ ◡)
+                  使用 GitHub 账号登录
                 </Button>
               </div>
             </TabsContent>
@@ -345,7 +390,39 @@ export function LoginForm() {
                   disabled={loading}
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  注册 ٩(◕‿◕)۶
+                  注册
+                </Button>
+              </div>
+            </TabsContent>
+            <TabsContent value="cardkey" className="space-y-4 mt-0">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <div className="absolute left-2.5 top-2 text-muted-foreground">
+                      <KeyRound className="h-5 w-5" />
+                    </div>
+                    <Input
+                      className="h-9 pl-9 pr-3"
+                      placeholder="请输入卡密 (格式: XYMAIL-XXXX-XXXX-XXXX)"
+                      value={cardKey}
+                      onChange={(e) => {
+                        setCardKey(e.target.value);
+                        setErrors({});
+                      }}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                <Button
+                  className="w-full"
+                  onClick={handleCardKeyLogin}
+                  disabled={loading}
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  使用卡密登录
                 </Button>
               </div>
             </TabsContent>
