@@ -44,6 +44,7 @@ interface User {
   role: string;
   roleName: string;
   createdAt?: string;
+  tempExpiresAt?: string | null;
 }
 
 const roleIcons = {
@@ -221,6 +222,7 @@ export default function UsersPage() {
                   <TableHead>用户</TableHead>
                   <TableHead>邮箱</TableHead>
                   <TableHead>当前角色</TableHead>
+                  <TableHead>到期时间</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -265,6 +267,11 @@ export default function UsersPage() {
                           <RoleIcon className="h-3 w-3 mr-1" />
                           {user.roleName}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.role === "temp_user" && user.tempExpiresAt
+                          ? new Date(user.tempExpiresAt).toLocaleString()
+                          : "-"}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

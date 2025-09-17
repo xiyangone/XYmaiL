@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createDb } from "@/lib/db";
-import { users, userRoles, roles } from "@/lib/schema";
+import { users, userRoles, roles, tempAccounts } from "@/lib/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -50,26 +50,46 @@ export async function GET() {
     // Get all users with their roles
     const allUsers = await db.query.users.findMany({
       with: {
-        userRoles: {
-          with: {
-            role: true,
-          },
-        },
+        userRoles: { with: { role: true } },
       },
       orderBy: [desc(users.id)],
     });
 
-    const usersWithRoles = allUsers.map((user) => ({
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      image: user.image,
-      role: user.userRoles[0]?.role.name || "civilian",
-      roleName:
-        roleDisplayNames[user.userRoles[0]?.role.name || "civilian"] || "平民",
-      createdAt: user.userRoles[0]?.createdAt,
-    }));
+    // 逐个补充临时账号的到期时间
+    const usersWithRoles = [] as Array<{
+      id: string;
+      name: string | null;
+      username: string | null;
+      email: string | null;
+      image?: string | null;
+      role: string;
+      roleName: string;
+      createdAt?: Date | null;
+      tempExpiresAt?: Date | null;
+    }>;
+
+    for (const u of allUsers) {
+      const roleName = u.userRoles[0]?.role.name || "civilian";
+      let tempExpiresAt: Date | null = null;
+      if (roleName === "temp_user") {
+        const temp = await db.query.tempAccounts.findFirst({
+          where: eq(tempAccounts.userId, u.id),
+        });
+        tempExpiresAt = (temp?.expiresAt as unknown as Date) ?? null;
+      }
+
+      usersWithRoles.push({
+        id: u.id,
+        name: u.name,
+        username: u.username,
+        email: u.email,
+        image: u.image,
+        role: roleName,
+        roleName: roleDisplayNames[roleName] || "平民",
+        createdAt: u.userRoles[0]?.createdAt ?? null,
+        tempExpiresAt,
+      });
+    }
 
     return NextResponse.json({ users: usersWithRoles });
   } catch (error) {
