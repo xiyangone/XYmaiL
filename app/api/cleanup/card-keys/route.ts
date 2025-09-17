@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, checkPermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
-import { cleanupExpiredData } from "@/lib/card-keys";
+import { cleanupExpiredCardKeys } from "@/lib/card-keys";
 
 export const runtime = "edge";
 
@@ -25,13 +25,16 @@ export async function POST() {
       );
     }
 
-    console.log("[API] 开始手动清理过期数据");
-    const result = await cleanupExpiredData();
+    console.log("[API] 开始手动清理过期卡密");
+    const result = await cleanupExpiredCardKeys();
 
     return NextResponse.json({
       success: true,
-      message: `成功清理 ${result.tempAccounts.deletedCount} 个过期临时账号和 ${result.cardKeys.deletedCount} 个过期卡密`,
-      data: result,
+      message: `成功清理 ${result.deletedCount} 个过期卡密`,
+      data: {
+        deletedCount: result.deletedCount,
+        details: result.details,
+      },
     });
   } catch (error) {
     console.error("清理过期卡密失败:", error);

@@ -108,15 +108,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "卡密不存在" }, { status: 404 });
     }
 
-    // 如果卡密已被使用，先删除关联的临时账号
-    if (cardKey.isUsed && cardKey.usedBy) {
-      console.log(`[CARD-KEY] 删除卡密关联的临时账号: ${cardKey.usedBy}`);
+    // 检查是否可以删除
+    const now = new Date();
+    const isExpired = cardKey.expiresAt < now;
 
-      // 删除临时账号（会级联删除相关数据）
-      const { users } = await import("@/lib/schema");
-      await db.delete(users).where(eq(users.id, cardKey.usedBy));
-
-      console.log(`[CARD-KEY] 已删除关联临时账号: ${cardKey.usedBy}`);
+    if (cardKey.isUsed && !isExpired) {
+      return NextResponse.json(
+        { error: "已使用且未过期的卡密无法删除" },
+        { status: 400 }
+      );
     }
 
     // 删除卡密
