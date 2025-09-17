@@ -1,96 +1,99 @@
-import NextAuth from "next-auth"
-import GitHub from "next-auth/providers/github"
-import { DrizzleAdapter } from "@auth/drizzle-adapter"
-import { createDb, Db } from "./db"
-import { accounts, users, roles, userRoles } from "./schema"
-import { eq } from "drizzle-orm"
-import { getRequestContext } from "@cloudflare/next-on-pages"
-import { Permission, hasPermission, ROLES, Role } from "./permissions"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { hashPassword, comparePassword } from "@/lib/utils"
-import { authSchema } from "@/lib/validation"
-import { generateAvatarUrl } from "./avatar"
-import { getUserId } from "./apiKey"
+import NextAuth from "next-auth";
+import GitHub from "next-auth/providers/github";
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { createDb, Db } from "./db";
+import { accounts, users, roles, userRoles } from "./schema";
+import { eq } from "drizzle-orm";
+import { getRequestContext } from "@cloudflare/next-on-pages";
+import { Permission, hasPermission, ROLES, Role } from "./permissions";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { hashPassword, comparePassword } from "@/lib/utils";
+import { authSchema } from "@/lib/validation";
+import { generateAvatarUrl } from "./avatar";
+import { getUserId } from "./apiKey";
+import { activateCardKey } from "./card-keys";
 
 const ROLE_DESCRIPTIONS: Record<Role, string> = {
   [ROLES.EMPEROR]: "皇帝（网站所有者）",
   [ROLES.DUKE]: "公爵（超级用户）",
   [ROLES.KNIGHT]: "骑士（高级用户）",
   [ROLES.CIVILIAN]: "平民（普通用户）",
-}
+  [ROLES.TEMP_USER]: "临时用户（卡密用户）",
+};
 
 const getDefaultRole = async (): Promise<Role> => {
-  const defaultRole = await getRequestContext().env.SITE_CONFIG.get("DEFAULT_ROLE")
+  const defaultRole = await getRequestContext().env.SITE_CONFIG.get(
+    "DEFAULT_ROLE"
+  );
 
   if (
     defaultRole === ROLES.DUKE ||
     defaultRole === ROLES.KNIGHT ||
     defaultRole === ROLES.CIVILIAN
   ) {
-    return defaultRole as Role
+    return defaultRole as Role;
   }
-  
-  return ROLES.CIVILIAN
-}
+
+  return ROLES.CIVILIAN;
+};
 
 async function findOrCreateRole(db: Db, roleName: Role) {
   let role = await db.query.roles.findFirst({
     where: eq(roles.name, roleName),
-  })
+  });
 
   if (!role) {
-    const [newRole] = await db.insert(roles)
+    const [newRole] = await db
+      .insert(roles)
       .values({
         name: roleName,
         description: ROLE_DESCRIPTIONS[roleName],
       })
-      .returning()
-    role = newRole
+      .returning();
+    role = newRole;
   }
 
-  return role
+  return role;
 }
 
 export async function assignRoleToUser(db: Db, userId: string, roleId: string) {
-  await db.delete(userRoles)
-    .where(eq(userRoles.userId, userId))
+  await db.delete(userRoles).where(eq(userRoles.userId, userId));
 
-  await db.insert(userRoles)
-    .values({
-      userId,
-      roleId,
-    })
+  await db.insert(userRoles).values({
+    userId,
+    roleId,
+  });
 }
 
 export async function getUserRole(userId: string) {
-  const db = createDb()
+  const db = createDb();
   const userRoleRecords = await db.query.userRoles.findMany({
     where: eq(userRoles.userId, userId),
     with: { role: true },
-  })
-  return userRoleRecords[0].role.name
+  });
+  return userRoleRecords[0].role.name;
 }
 
 export async function checkPermission(permission: Permission) {
-  const userId = await getUserId()
+  const userId = await getUserId();
 
-  if (!userId) return false
+  if (!userId) return false;
 
-  const db = createDb()
+  const db = createDb();
   const userRoleRecords = await db.query.userRoles.findMany({
     where: eq(userRoles.userId, userId),
     with: { role: true },
-  })
+  });
 
-  const userRoleNames = userRoleRecords.map(ur => ur.role.name)
-  return hasPermission(userRoleNames as Role[], permission)
+  const userRoleNames = userRoleRecords.map((ur) => ur.role.name);
+  return hasPermission(userRoleNames as Role[], permission);
 }
 
 export const {
   handlers: { GET, POST },
   auth,
   signIn,
-  signOut
+  signOut,
 } = NextAuth(() => ({
   secret: process.env.AUTH_SECRET,
   adapter: DrizzleAdapter(createDb(), {
@@ -105,132 +108,188 @@ export const {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "用户名", type: "text", placeholder: "请输入用户名" },
-        password: { label: "密码", type: "password", placeholder: "请输入密码" },
+        username: {
+          label: "用户名",
+          type: "text",
+          placeholder: "请输入用户名",
+        },
+        password: {
+          label: "密码",
+          type: "password",
+          placeholder: "请输入密码",
+        },
       },
       async authorize(credentials) {
         if (!credentials) {
-          throw new Error("请输入用户名和密码")
+          throw new Error("请输入用户名和密码");
         }
 
-        const { username, password } = credentials
+        const { username, password } = credentials;
 
         try {
-          authSchema.parse({ username, password })
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          authSchema.parse({ username, password });
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
-          throw new Error("输入格式不正确")
+          throw new Error("输入格式不正确");
         }
 
-        const db = createDb()
+        const db = createDb();
 
         const user = await db.query.users.findFirst({
           where: eq(users.username, username as string),
-        })
+        });
 
         if (!user) {
-          throw new Error("用户名或密码错误")
+          throw new Error("用户名或密码错误");
         }
 
-        const isValid = await comparePassword(password as string, user.password as string)
+        const isValid = await comparePassword(
+          password as string,
+          user.password as string
+        );
         if (!isValid) {
-          throw new Error("用户名或密码错误")
+          throw new Error("用户名或密码错误");
         }
 
         return {
           ...user,
           password: undefined,
+        };
+      },
+    }),
+    CredentialsProvider({
+      id: "card-key",
+      name: "卡密登录",
+      credentials: {
+        cardKey: {
+          label: "卡密",
+          type: "text",
+          placeholder: "请输入卡密",
+        },
+      },
+      async authorize(credentials) {
+        if (!credentials?.cardKey) {
+          throw new Error("请输入卡密");
+        }
+
+        const { cardKey } = credentials;
+
+        try {
+          // 验证并使用卡密
+          const result = await activateCardKey(cardKey as string);
+
+          // 获取创建的用户信息
+          const db = createDb();
+          const user = await db.query.users.findFirst({
+            where: eq(users.id, result.userId),
+          });
+
+          if (!user) {
+            throw new Error("用户创建失败");
+          }
+
+          return {
+            ...user,
+            password: undefined,
+          };
+        } catch (error) {
+          throw new Error(
+            error instanceof Error ? error.message : "卡密验证失败"
+          );
         }
       },
     }),
   ],
   events: {
     async signIn({ user }) {
-      if (!user.id) return
+      if (!user.id) return;
 
       try {
-        const db = createDb()
+        const db = createDb();
         const existingRole = await db.query.userRoles.findFirst({
           where: eq(userRoles.userId, user.id),
-        })
+        });
 
-        if (existingRole) return
+        if (existingRole) return;
 
-        const defaultRole = await getDefaultRole()
-        const role = await findOrCreateRole(db, defaultRole)
-        await assignRoleToUser(db, user.id, role.id)
+        const defaultRole = await getDefaultRole();
+        const role = await findOrCreateRole(db, defaultRole);
+        await assignRoleToUser(db, user.id, role.id);
       } catch (error) {
-        console.error('Error assigning role:', error)
+        console.error("Error assigning role:", error);
       }
     },
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.name = user.name || user.username
-        token.username = user.username
-        token.image = user.image || generateAvatarUrl(token.name as string)
+        token.id = user.id;
+        token.name = user.name || user.username;
+        token.username = user.username;
+        token.image = user.image || generateAvatarUrl(token.name as string);
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string
-        session.user.name = token.name as string
-        session.user.username = token.username as string
-        session.user.image = token.image as string
+        session.user.id = token.id as string;
+        session.user.name = token.name as string;
+        session.user.username = token.username as string;
+        session.user.image = token.image as string;
 
-        const db = createDb()
+        const db = createDb();
         let userRoleRecords = await db.query.userRoles.findMany({
           where: eq(userRoles.userId, session.user.id),
           with: { role: true },
-        })
-  
+        });
+
         if (!userRoleRecords.length) {
-          const defaultRole = await getDefaultRole()
-          const role = await findOrCreateRole(db, defaultRole)
-          await assignRoleToUser(db, session.user.id, role.id)
-          userRoleRecords = [{
-            userId: session.user.id,
-            roleId: role.id,
-            createdAt: new Date(),
-            role: role
-          }]
+          const defaultRole = await getDefaultRole();
+          const role = await findOrCreateRole(db, defaultRole);
+          await assignRoleToUser(db, session.user.id, role.id);
+          userRoleRecords = [
+            {
+              userId: session.user.id,
+              roleId: role.id,
+              createdAt: new Date(),
+              role: role,
+            },
+          ];
         }
-  
-        session.user.roles = userRoleRecords.map(ur => ({
+
+        session.user.roles = userRoleRecords.map((ur) => ({
           name: ur.role.name,
-        }))
+        }));
       }
 
-      return session
+      return session;
     },
   },
   session: {
     strategy: "jwt",
   },
-}))
+}));
 
 export async function register(username: string, password: string) {
-  const db = createDb()
-  
+  const db = createDb();
+
   const existing = await db.query.users.findFirst({
-    where: eq(users.username, username)
-  })
+    where: eq(users.username, username),
+  });
 
   if (existing) {
-    throw new Error("用户名已存在")
+    throw new Error("用户名已存在");
   }
 
-  const hashedPassword = await hashPassword(password)
-  
-  const [user] = await db.insert(users)
+  const hashedPassword = await hashPassword(password);
+
+  const [user] = await db
+    .insert(users)
     .values({
       username,
       password: hashedPassword,
     })
-    .returning()
+    .returning();
 
-  return user
+  return user;
 }
