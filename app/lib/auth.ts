@@ -26,6 +26,25 @@ function readEnv(key: string): string | undefined {
     return undefined;
   }
 }
+
+// 动态读取环境变量的函数，用于运行时获取
+function getEnvVar(key: string): string | undefined {
+  // 首先尝试从 process.env 读取
+  const fromProcess = (globalThis as any).process?.env?.[key] as
+    | string
+    | undefined;
+  if (fromProcess) return fromProcess;
+
+  // 然后尝试从 Cloudflare runtime env 读取
+  try {
+    const runtimeEnv = (getRequestContext() as any)?.env as Record<string, any>;
+    return (runtimeEnv?.[key] as string) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// 初始化时尝试读取环境变量，但允许运行时重新获取
 const AUTH_SECRET = readEnv("AUTH_SECRET") ?? readEnv("NEXTAUTH_SECRET");
 const AUTH_GITHUB_ID = readEnv("AUTH_GITHUB_ID") ?? readEnv("GITHUB_ID");
 const AUTH_GITHUB_SECRET =
@@ -119,13 +138,30 @@ export async function checkPermission(permission: Permission) {
   return hasPermission(userRoleNames as Role[], permission);
 }
 
+// 获取最终的 AUTH_SECRET，优先使用运行时环境变量
+function getFinalAuthSecret(): string | undefined {
+  const runtimeSecret =
+    getEnvVar("AUTH_SECRET") ?? getEnvVar("NEXTAUTH_SECRET");
+  const finalSecret = runtimeSecret ?? AUTH_SECRET;
+
+  console.log("[AUTH] 最终环境变量检查", {
+    hasSecret: !!finalSecret,
+    secretLength: finalSecret?.length || 0,
+    source: runtimeSecret ? "运行时" : "初始化",
+    hasRuntimeSecret: !!runtimeSecret,
+    hasInitSecret: !!AUTH_SECRET,
+  });
+
+  return finalSecret;
+}
+
 export const {
   handlers: { GET, POST },
   auth,
   signIn,
   signOut,
 } = NextAuth({
-  secret: AUTH_SECRET,
+  secret: getFinalAuthSecret(),
   // 允许在反向代理/Edge 环境下基于请求头动态推断主机名（当未设置 NEXTAUTH_URL 时尤为重要）
   trustHost: true,
   // 临时日志：仅用于排查凭证回调/会话签发问题（部署稳定后可移除或降级）
