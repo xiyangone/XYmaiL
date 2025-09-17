@@ -28,9 +28,6 @@ export async function POST() {
     console.log("[API] 开始手动清理过期数据");
     const result = await cleanupExpiredData();
 
-    const totalDeleted =
-      result.tempAccounts.deletedCount + result.cardKeys.deletedCount;
-
     return NextResponse.json({
       success: true,
       message: `成功清理 ${result.tempAccounts.deletedCount} 个过期临时账号和 ${result.cardKeys.deletedCount} 个过期卡密`,
