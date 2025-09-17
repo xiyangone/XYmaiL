@@ -94,17 +94,26 @@ export const {
   auth,
   signIn,
   signOut,
-} = NextAuth(() => ({
-  secret: process.env.AUTH_SECRET,
-  adapter: DrizzleAdapter(createDb(), {
-    usersTable: users,
-    accountsTable: accounts,
-  }),
-  providers: [
-    GitHub({
-      clientId: process.env.AUTH_GITHUB_ID,
-      clientSecret: process.env.AUTH_GITHUB_SECRET,
-    }),
+} = NextAuth(() => {
+  const env = getRequestContext().env as any;
+
+  // 动态构建Providers，避免缺少环境变量导致配置错误
+  const providers = [] as any[];
+  if (
+    (env.AUTH_GITHUB_ID || process.env.AUTH_GITHUB_ID) &&
+    (env.AUTH_GITHUB_SECRET || process.env.AUTH_GITHUB_SECRET)
+  ) {
+    providers.push(
+      GitHub({
+        clientId: (env.AUTH_GITHUB_ID || process.env.AUTH_GITHUB_ID) as string,
+        clientSecret: (env.AUTH_GITHUB_SECRET ||
+          process.env.AUTH_GITHUB_SECRET) as string,
+      })
+    );
+  }
+
+  // 添加用户名密码登录
+  providers.push(
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -156,137 +165,148 @@ export const {
           password: undefined,
         };
       },
+    })
+  );
+
+  return {
+    secret: (env.AUTH_SECRET || process.env.AUTH_SECRET) as string,
+    adapter: DrizzleAdapter(createDb(), {
+      usersTable: users,
+      accountsTable: accounts,
     }),
-    CredentialsProvider({
-      id: "card-key",
-      name: "卡密登录",
-      credentials: {
-        cardKey: {
-          label: "卡密",
-          type: "text",
-          placeholder: "请输入卡密",
+    providers: [
+      ...providers,
+      CredentialsProvider({
+        id: "card-key",
+        name: "卡密登录",
+        credentials: {
+          cardKey: {
+            label: "卡密",
+            type: "text",
+            placeholder: "请输入卡密",
+          },
         },
-      },
-      async authorize(credentials) {
-        console.log("[AUTH] 卡密登录开始", {
-          cardKey: credentials?.cardKey
-            ? "***" + (credentials.cardKey as string).slice(-4)
-            : "未提供",
-        });
-
-        if (!credentials?.cardKey) {
-          console.log("[AUTH] 卡密登录失败: 未提供卡密");
-          throw new Error("请输入卡密");
-        }
-
-        const { cardKey } = credentials;
-
-        try {
-          console.log("[AUTH] 开始验证卡密", {
-            cardKey: "***" + (cardKey as string).slice(-4),
-          });
-          // 验证并使用卡密
-          const result = await activateCardKey(cardKey as string);
-          console.log("[AUTH] 卡密验证成功", {
-            userId: result.userId,
-            emailAddress: result.emailAddress,
+        async authorize(credentials) {
+          console.log("[AUTH] 卡密登录开始", {
+            cardKey: credentials?.cardKey
+              ? "***" + (credentials.cardKey as string).slice(-4)
+              : "未提供",
           });
 
-          // 获取创建的用户信息
-          const db = createDb();
-          const user = await db.query.users.findFirst({
-            where: eq(users.id, result.userId),
-          });
-
-          if (!user) {
-            throw new Error("用户创建失败");
+          if (!credentials?.cardKey) {
+            console.log("[AUTH] 卡密登录失败: 未提供卡密");
+            throw new Error("请输入卡密");
           }
 
-          return {
-            ...user,
-            password: undefined,
-          };
-        } catch (error) {
-          console.log("[AUTH] 卡密验证失败", {
-            error: error instanceof Error ? error.message : "未知错误",
-            stack: error instanceof Error ? error.stack : undefined,
+          const { cardKey } = credentials;
+
+          try {
+            console.log("[AUTH] 开始验证卡密", {
+              cardKey: "***" + (cardKey as string).slice(-4),
+            });
+            // 验证并使用卡密
+            const result = await activateCardKey(cardKey as string);
+            console.log("[AUTH] 卡密验证成功", {
+              userId: result.userId,
+              emailAddress: result.emailAddress,
+            });
+
+            // 获取创建的用户信息
+            const db = createDb();
+            const user = await db.query.users.findFirst({
+              where: eq(users.id, result.userId),
+            });
+
+            if (!user) {
+              throw new Error("用户创建失败");
+            }
+
+            return {
+              ...user,
+              password: undefined,
+            };
+          } catch (error) {
+            console.log("[AUTH] 卡密验证失败", {
+              error: error instanceof Error ? error.message : "未知错误",
+              stack: error instanceof Error ? error.stack : undefined,
+            });
+            throw new Error(
+              error instanceof Error ? error.message : "卡密验证失败"
+            );
+          }
+        },
+      }),
+    ],
+    events: {
+      async signIn({ user }) {
+        if (!user.id) return;
+
+        try {
+          const db = createDb();
+          const existingRole = await db.query.userRoles.findFirst({
+            where: eq(userRoles.userId, user.id),
           });
-          throw new Error(
-            error instanceof Error ? error.message : "卡密验证失败"
-          );
-        }
-      },
-    }),
-  ],
-  events: {
-    async signIn({ user }) {
-      if (!user.id) return;
 
-      try {
-        const db = createDb();
-        const existingRole = await db.query.userRoles.findFirst({
-          where: eq(userRoles.userId, user.id),
-        });
+          if (existingRole) return;
 
-        if (existingRole) return;
-
-        const defaultRole = await getDefaultRole();
-        const role = await findOrCreateRole(db, defaultRole);
-        await assignRoleToUser(db, user.id, role.id);
-      } catch (error) {
-        console.error("Error assigning role:", error);
-      }
-    },
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.name = user.name || user.username;
-        token.username = user.username;
-        token.image = user.image || generateAvatarUrl(token.name as string);
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.name = token.name as string;
-        session.user.username = token.username as string;
-        session.user.image = token.image as string;
-
-        const db = createDb();
-        let userRoleRecords = await db.query.userRoles.findMany({
-          where: eq(userRoles.userId, session.user.id),
-          with: { role: true },
-        });
-
-        if (!userRoleRecords.length) {
           const defaultRole = await getDefaultRole();
           const role = await findOrCreateRole(db, defaultRole);
-          await assignRoleToUser(db, session.user.id, role.id);
-          userRoleRecords = [
-            {
-              userId: session.user.id,
-              roleId: role.id,
-              createdAt: new Date(),
-              role: role,
-            },
-          ];
+          await assignRoleToUser(db, user.id, role.id);
+        } catch (error) {
+          console.error("Error assigning role:", error);
+        }
+      },
+    },
+    callbacks: {
+      async jwt({ token, user }) {
+        if (user) {
+          token.id = user.id;
+          token.name = user.name || user.username;
+          token.username = user.username;
+          token.image = user.image || generateAvatarUrl(token.name as string);
+        }
+        return token;
+      },
+      async session({ session, token }) {
+        if (token && session.user) {
+          session.user.id = token.id as string;
+          session.user.name = token.name as string;
+          session.user.username = token.username as string;
+          session.user.image = token.image as string;
+
+          const db = createDb();
+          let userRoleRecords = await db.query.userRoles.findMany({
+            where: eq(userRoles.userId, session.user.id),
+            with: { role: true },
+          });
+
+          if (!userRoleRecords.length) {
+            const defaultRole = await getDefaultRole();
+            const role = await findOrCreateRole(db, defaultRole);
+            await assignRoleToUser(db, session.user.id, role.id);
+            userRoleRecords = [
+              {
+                userId: session.user.id,
+                roleId: role.id,
+                createdAt: new Date(),
+                role: role,
+              },
+            ];
+          }
+
+          session.user.roles = userRoleRecords.map((ur) => ({
+            name: ur.role.name,
+          }));
         }
 
-        session.user.roles = userRoleRecords.map((ur) => ({
-          name: ur.role.name,
-        }));
-      }
-
-      return session;
+        return session;
+      },
     },
-  },
-  session: {
-    strategy: "jwt",
-  },
-}));
+    session: {
+      strategy: "jwt",
+    },
+  };
+});
 
 export async function register(username: string, password: string) {
   const db = createDb();
