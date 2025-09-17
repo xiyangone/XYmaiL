@@ -115,9 +115,9 @@ export async function activateCardKey(code: string) {
   }
   console.log("[CARD-KEY] 角色分配完成");
 
-  // 创建绑定的邮箱地址
+  // 创建绑定的邮箱地址：与卡密同一到期日，确保生命周期一致
   const now = new Date();
-  const emailExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7天后过期
+  const emailExpiresAt = cardKey.expiresAt;
 
   await db.insert(emails).values({
     address: cardKey.emailAddress,
