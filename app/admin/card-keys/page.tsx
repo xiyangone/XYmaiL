@@ -188,7 +188,7 @@ export default function CardKeysPage() {
       toast({
         title: "错误",
         description:
-          error instanceof Error ? error.message : "清理过期卡密失败",
+          error instanceof Error ? error.message : "清理过期数据失败",
         variant: "destructive",
       });
     }
@@ -230,7 +230,7 @@ export default function CardKeysPage() {
             className="gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            清理过期卡密
+            清理过期数据
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -334,20 +334,18 @@ user2@example.com"
                         </Badge>
                       )}
                     </div>
-                    {(!cardKey.isUsed || new Date(cardKey.expiresAt) < new Date()) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteCardKey(cardKey.id)}
-                        title={
-                          cardKey.isUsed && new Date(cardKey.expiresAt) < new Date()
-                            ? "删除过期的已使用卡密"
-                            : "删除未使用卡密"
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteCardKey(cardKey.id)}
+                      title={
+                        cardKey.isUsed
+                          ? "删除卡密及关联临时账号"
+                          : "删除未使用卡密"
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
