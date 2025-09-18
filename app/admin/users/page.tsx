@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { useRolePermission } from "@/hooks/use-role-permission";
 import { PERMISSIONS } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
@@ -77,6 +78,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
   const router = useRouter();
@@ -114,14 +118,31 @@ export default function UsersPage() {
     }
   }, [canManageUsers, fetchUsers]);
 
-  // 角色筛选逻辑
+  // 搜索 + 角色筛选组合逻辑
   useEffect(() => {
-    if (selectedRole === "all") {
-      setFilteredUsers(users);
-    } else {
-      setFilteredUsers(users.filter((user) => user.role === selectedRole));
+    let result =
+      selectedRole === "all"
+        ? users
+        : users.filter((u) => u.role === selectedRole);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (u) =>
+          (u.name || "").toLowerCase().includes(q) ||
+          (u.username || "").toLowerCase().includes(q) ||
+          (u.email || "").toLowerCase().includes(q)
+      );
     }
-  }, [users, selectedRole]);
+    setFilteredUsers(result);
+    setCurrentPage(1);
+  }, [users, selectedRole, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const paginatedUsers = useMemo(
+    () =>
+      filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [filteredUsers, currentPage, pageSize]
+  );
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
@@ -232,7 +253,7 @@ export default function UsersPage() {
             onValueChange={setSelectedRole}
             className="mt-4"
           >
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid grid-cols-6 gap-2 w-auto">
               <TabsTrigger value="all" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 全部
@@ -262,6 +283,47 @@ export default function UsersPage() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          <div className="mt-4 flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+            <div className="flex items-center gap-3">
+              <Input
+                placeholder="搜索用户名/邮箱"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-[240px]"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>
+                显示{" "}
+                {Math.min(
+                  filteredUsers.length,
+                  (currentPage - 1) * pageSize + 1
+                )}
+                -{Math.min(currentPage * pageSize, filteredUsers.length)} /{" "}
+                {filteredUsers.length}
+              </span>
+              <span className="mx-1">·</span>
+              <span>每页</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => {
+                  setPageSize(Number(v));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[80px]">
+                  <SelectValue placeholder="每页" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50].map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -269,104 +331,135 @@ export default function UsersPage() {
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>用户</TableHead>
-                  <TableHead>邮箱</TableHead>
-                  <TableHead>当前角色</TableHead>
-                  <TableHead>到期时间</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => {
-                  const RoleIcon =
-                    roleIcons[user.role as keyof typeof roleIcons] || User;
-                  const roleColor =
-                    roleColors[user.role as keyof typeof roleColors] ||
-                    "bg-gray-500";
+            <>
+              <Table className="table-fixed w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[28%]">用户</TableHead>
+                    <TableHead className="w-[30%]">邮箱</TableHead>
+                    <TableHead className="w-[16%]">当前角色</TableHead>
+                    <TableHead className="w-[16%]">到期时间</TableHead>
+                    <TableHead className="w-[10%]">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedUsers.map((user) => {
+                    const RoleIcon =
+                      roleIcons[user.role as keyof typeof roleIcons] || User;
+                    const roleColor =
+                      roleColors[user.role as keyof typeof roleColors] ||
+                      "bg-gray-500";
 
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {user.image ? (
-                            <Image
-                              src={user.image}
-                              alt={user.name || user.username}
-                              width={32}
-                              height={32}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                              <User className="h-4 w-4" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium">
-                              {user.name || user.username}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              @{user.username}
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {user.image ? (
+                              <Image
+                                src={user.image}
+                                alt={user.name || user.username}
+                                width={32}
+                                height={32}
+                                className="w-8 h-8 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <User className="h-4 w-4" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium">
+                                {user.name || user.username}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                @{user.username}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge className={`${roleColor} text-white`}>
-                          <RoleIcon className="h-3 w-3 mr-1" />
-                          {user.roleName}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.role === "temp_user" && user.tempExpiresAt
-                          ? new Date(user.tempExpiresAt).toLocaleString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Select
-                            value={user.role}
-                            onValueChange={(newRole) =>
-                              updateUserRole(user.id, newRole)
-                            }
-                            disabled={updating === user.id}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {roleOptions.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="ml-2"
-                            disabled={
-                              updating === user.id || user.role === "emperor"
-                            }
-                            onClick={() => deleteUser(user.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell className="truncate">
+                          <span className="truncate block max-w-[260px]">
+                            {user.email}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`${roleColor} text-white`}>
+                            <RoleIcon className="h-3 w-3 mr-1" />
+                            {user.roleName}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {user.role === "temp_user" && user.tempExpiresAt
+                            ? new Date(user.tempExpiresAt).toLocaleString()
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={user.role}
+                              onValueChange={(newRole) =>
+                                updateUserRole(user.id, newRole)
+                              }
+                              disabled={updating === user.id}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {roleOptions.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="ml-2"
+                              disabled={
+                                updating === user.id || user.role === "emperor"
+                              }
+                              onClick={() => deleteUser(user.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                  第 {currentPage} / {totalPages} 页
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  >
+                    上一页
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                  >
+                    下一页
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
