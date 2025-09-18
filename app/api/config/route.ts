@@ -14,6 +14,7 @@ export async function GET() {
     maxEmails,
     cleanupUsedExpired,
     cleanupExpiredEmails,
+    cleanupExpiredUnused,
     cardKeyDefaultDays,
   ] = await Promise.all([
     env.SITE_CONFIG.get("DEFAULT_ROLE"),
@@ -22,6 +23,7 @@ export async function GET() {
     env.SITE_CONFIG.get("MAX_EMAILS"),
     env.SITE_CONFIG.get("CLEANUP_DELETE_USED_EXPIRED_CARD_KEYS"),
     env.SITE_CONFIG.get("CLEANUP_DELETE_EXPIRED_EMAILS"),
+    env.SITE_CONFIG.get("CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS"),
     env.SITE_CONFIG.get("CARD_KEY_DEFAULT_DAYS"),
   ]);
 
@@ -32,6 +34,9 @@ export async function GET() {
     maxEmails: maxEmails || EMAIL_CONFIG.MAX_ACTIVE_EMAILS.toString(),
     cleanupDeleteUsedExpiredCardKeys: (cleanupUsedExpired ?? "true").toString(),
     cleanupDeleteExpiredEmails: (cleanupExpiredEmails ?? "true").toString(),
+    cleanupDeleteExpiredUnusedCardKeys: (
+      cleanupExpiredUnused ?? "true"
+    ).toString(),
     cardKeyDefaultDays: (cardKeyDefaultDays ?? "7").toString(),
   });
 }
@@ -55,6 +60,7 @@ export async function POST(request: Request) {
     maxEmails,
     cleanupDeleteUsedExpiredCardKeys,
     cleanupDeleteExpiredEmails,
+    cleanupDeleteExpiredUnusedCardKeys,
     cardKeyDefaultDays,
   } = (await request.json()) as {
     defaultRole: Exclude<Role, typeof ROLES.EMPEROR>;
@@ -63,6 +69,7 @@ export async function POST(request: Request) {
     maxEmails: string;
     cleanupDeleteUsedExpiredCardKeys?: string | boolean;
     cleanupDeleteExpiredEmails?: string | boolean;
+    cleanupDeleteExpiredUnusedCardKeys?: string | boolean;
     cardKeyDefaultDays?: string | number;
   };
 
@@ -95,6 +102,13 @@ export async function POST(request: Request) {
       (typeof cleanupDeleteExpiredEmails === "boolean"
         ? cleanupDeleteExpiredEmails
         : cleanupDeleteExpiredEmails ?? "true"
+      ).toString()
+    ),
+    env.SITE_CONFIG.put(
+      "CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS",
+      (typeof cleanupDeleteExpiredUnusedCardKeys === "boolean"
+        ? cleanupDeleteExpiredUnusedCardKeys
+        : cleanupDeleteExpiredUnusedCardKeys ?? "true"
       ).toString()
     ),
     env.SITE_CONFIG.put(

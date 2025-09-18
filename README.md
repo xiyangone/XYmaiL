@@ -417,6 +417,7 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
        "cleanedExpiredCardKeys": 5,
        "cleanedExpiredEmails": 3,
        "includeUsedExpired": true,
+       "deleteExpiredUnused": true,
        "deleteExpiredEmails": true
      }
      ```
@@ -426,6 +427,14 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
    - 可配置 Cloudflare Worker 或 Cloudflare Pages Scheduled Triggers 定时任务
    - 周期性自动清理过期的临时账号、卡密与邮箱
    - 清理时会级联删除相关用户数据与消息
+
+   **定时规则说明与绑定差异**
+
+   - Cron 表达式 `*/30 * * * *` 表示每小时的 `00` 与 `30` 分触发（按 UTC），不是“自部署开始每隔 30 分钟”
+   - 如需整点触发用 `0 * * * *`
+   - temp-account-cleanup Worker 仅通过 HTTP 调用 `SITE_URL + /api/cleanup/temp-accounts`，不直接访问数据库，因此“无需”绑定 D1
+   - 直连 D1 的清理 Worker（如邮箱直连清理方案）才需要在 Worker 绑定 D1 数据库
+   - SITE_URL 建议指向站点根域（例如 `https://xiyangone.online`），接口路径固定为 `/api/cleanup/temp-accounts`
 
 3. **配置定时任务**
 
@@ -520,6 +529,7 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
 - `MAX_EMAILS`: 每个用户可创建的最大邮箱数量
 - `CLEANUP_DELETE_USED_EXPIRED_CARD_KEYS`: 是否在自动清理中删除“已使用且已过期”的卡密，`true/false`，默认 `true`
 - `CLEANUP_DELETE_EXPIRED_EMAILS`: 是否自动清理“已过期邮箱”（会级联删除其消息），`true/false`，默认 `true`
+- `CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS`: 是否删除“过期未使用”的卡密，`true/false`，默认 `true`
 - `CARD_KEY_DEFAULT_DAYS`: 卡密默认有效期（天），数值，默认 `7`
 
 **皇帝**角色可以在个人中心页面设置
