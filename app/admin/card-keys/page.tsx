@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRolePermission } from "@/hooks/use-role-permission";
 import { PERMISSIONS } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
@@ -49,6 +50,7 @@ interface CardKey {
 
 export default function CardKeysPage() {
   const [cardKeys, setCardKeys] = useState<CardKey[]>([]);
+  const [filteredCardKeys, setFilteredCardKeys] = useState<CardKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [emailAddresses, setEmailAddresses] = useState("");
@@ -56,6 +58,7 @@ export default function CardKeysPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cardKeyToDelete, setCardKeyToDelete] = useState<CardKey | null>(null);
   const [autoReleaseEmperorOwned, setAutoReleaseEmperorOwned] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
   const router = useRouter();
@@ -71,6 +74,7 @@ export default function CardKeysPage() {
       }
       const data = (await response.json()) as { cardKeys: CardKey[] };
       setCardKeys(data.cardKeys);
+      setFilteredCardKeys(data.cardKeys);
     } catch (error) {
       toast({
         title: "错误",
@@ -88,6 +92,24 @@ export default function CardKeysPage() {
       fetchCardKeys();
     }
   }, [canManageCardKeys, fetchCardKeys]);
+
+  // 状态筛选逻辑
+  useEffect(() => {
+    const now = new Date();
+    if (selectedStatus === "all") {
+      setFilteredCardKeys(cardKeys);
+    } else if (selectedStatus === "unused") {
+      setFilteredCardKeys(
+        cardKeys.filter((key) => !key.isUsed && new Date(key.expiresAt) > now)
+      );
+    } else if (selectedStatus === "used") {
+      setFilteredCardKeys(cardKeys.filter((key) => key.isUsed));
+    } else if (selectedStatus === "expired") {
+      setFilteredCardKeys(
+        cardKeys.filter((key) => new Date(key.expiresAt) <= now)
+      );
+    }
+  }, [cardKeys, selectedStatus]);
 
   const generateCardKeys = async () => {
     const addresses = emailAddresses
@@ -298,55 +320,99 @@ export default function CardKeysPage() {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : (
-        <div className="grid gap-4">
-          {cardKeys.map((cardKey) => (
-            <Card key={cardKey.id}>
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="all">全部 ({cardKeys.length})</TabsTrigger>
+                <TabsTrigger value="unused">
+                  未使用 (
+                  {
+                    cardKeys.filter(
+                      (key) =>
+                        !key.isUsed && new Date(key.expiresAt) > new Date()
+                    ).length
+                  }
+                  )
+                </TabsTrigger>
+                <TabsTrigger value="used">
+                  已使用 ({cardKeys.filter((key) => key.isUsed).length})
+                </TabsTrigger>
+                <TabsTrigger value="expired">
+                  已过期 (
+                  {
+                    cardKeys.filter(
+                      (key) => new Date(key.expiresAt) <= new Date()
+                    ).length
+                  }
+                  )
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="text-sm text-muted-foreground">
+              显示 {filteredCardKeys.length} 个卡密
+            </div>
+          </div>
+          <div className="grid gap-4">
+            {filteredCardKeys.map((cardKey) => (
+              <Card key={cardKey.id}>
+                <CardContent className="pt-6">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <code className="bg-muted px-2 py-1 rounded text-sm">
+                          {cardKey.code}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(cardKey.code)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        邮箱: {cardKey.emailAddress}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        创建时间: {new Date(cardKey.createdAt).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        过期时间: {new Date(cardKey.expiresAt).toLocaleString()}
+                      </p>
+                      {cardKey.isUsed && cardKey.usedBy && (
+                        <p className="text-sm text-muted-foreground">
+                          使用者:{" "}
+                          {cardKey.usedBy.name || cardKey.usedBy.username}
+                        </p>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
-                      <code className="bg-muted px-2 py-1 rounded text-sm">
-                        {cardKey.code}
-                      </code>
+                      {(() => {
+                        const now = new Date();
+                        const isExpired = new Date(cardKey.expiresAt) <= now;
+
+                        if (isExpired) {
+                          return <Badge variant="destructive">已过期</Badge>;
+                        } else if (cardKey.isUsed) {
+                          return <Badge variant="secondary">已使用</Badge>;
+                        } else {
+                          return <Badge variant="default">未使用</Badge>;
+                        }
+                      })()}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard(cardKey.code)}
+                        onClick={() => setCardKeyToDelete(cardKey)}
                       >
-                        <Copy className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      邮箱: {cardKey.emailAddress}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      创建时间: {new Date(cardKey.createdAt).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      过期时间: {new Date(cardKey.expiresAt).toLocaleString()}
-                    </p>
-                    {cardKey.isUsed && cardKey.usedBy && (
-                      <p className="text-sm text-muted-foreground">
-                        使用者: {cardKey.usedBy.name || cardKey.usedBy.username}
-                      </p>
-                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={cardKey.isUsed ? "secondary" : "default"}>
-                      {cardKey.isUsed ? "已使用" : "未使用"}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setCardKeyToDelete(cardKey)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
       {/* 删除确认对话框 */}

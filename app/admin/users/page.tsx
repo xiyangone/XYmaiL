@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRolePermission } from "@/hooks/use-role-permission";
 import { PERMISSIONS } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
@@ -72,8 +73,10 @@ const roleOptions = [
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("all");
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
   const router = useRouter();
@@ -92,6 +95,7 @@ export default function UsersPage() {
 
       const data = (await response.json()) as { users: User[] };
       setUsers(data.users);
+      setFilteredUsers(data.users);
     } catch (error) {
       toast({
         title: "错误",
@@ -109,6 +113,15 @@ export default function UsersPage() {
       fetchUsers();
     }
   }, [canManageUsers, fetchUsers]);
+
+  // 角色筛选逻辑
+  useEffect(() => {
+    if (selectedRole === "all") {
+      setFilteredUsers(users);
+    } else {
+      setFilteredUsers(users.filter((user) => user.role === selectedRole));
+    }
+  }, [users, selectedRole]);
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
@@ -208,7 +221,47 @@ export default function UsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>用户列表</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>用户列表</CardTitle>
+            <div className="text-sm text-muted-foreground">
+              共 {filteredUsers.length} 个用户
+            </div>
+          </div>
+          <Tabs
+            value={selectedRole}
+            onValueChange={setSelectedRole}
+            className="mt-4"
+          >
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                全部
+              </TabsTrigger>
+              <TabsTrigger value="emperor" className="flex items-center gap-2">
+                <Crown className="h-4 w-4" />
+                皇帝
+              </TabsTrigger>
+              <TabsTrigger value="duke" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                公爵
+              </TabsTrigger>
+              <TabsTrigger value="knight" className="flex items-center gap-2">
+                <Sword className="h-4 w-4" />
+                骑士
+              </TabsTrigger>
+              <TabsTrigger value="civilian" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                平民
+              </TabsTrigger>
+              <TabsTrigger
+                value="temp_user"
+                className="flex items-center gap-2"
+              >
+                <User className="h-4 w-4" />
+                临时用户
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -227,7 +280,7 @@ export default function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => {
+                {filteredUsers.map((user) => {
                   const RoleIcon =
                     roleIcons[user.role as keyof typeof roleIcons] || User;
                   const roleColor =
