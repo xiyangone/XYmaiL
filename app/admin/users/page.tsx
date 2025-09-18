@@ -335,10 +335,10 @@ export default function UsersPage() {
               <Table className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[24%]">用户</TableHead>
-                    <TableHead className="w-[28%]">邮箱</TableHead>
+                    <TableHead className="w-[22%]">用户</TableHead>
+                    <TableHead className="w-[26%]">邮箱</TableHead>
                     <TableHead className="w-[16%]">当前角色</TableHead>
-                    <TableHead className="w-[20%]">到期时间</TableHead>
+                    <TableHead className="w-[18%]">到期时间</TableHead>
                     <TableHead className="w-[12%] min-w-[180px]">
                       操作
                     </TableHead>
@@ -380,7 +380,7 @@ export default function UsersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="truncate">
-                          <span className="truncate block max-w-[220px]">
+                          <span className="truncate block max-w-[200px]">
                             {user.email}
                           </span>
                         </TableCell>
