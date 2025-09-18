@@ -332,113 +332,111 @@ export default function UsersPage() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <Table className="table-fixed w-full">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[28%]">用户</TableHead>
-                      <TableHead className="w-[30%]">邮箱</TableHead>
-                      <TableHead className="w-[16%]">当前角色</TableHead>
-                      <TableHead className="w-[16%]">到期时间</TableHead>
-                      <TableHead className="w-[10%] min-w-[180px]">
-                        操作
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedUsers.map((user) => {
-                      const RoleIcon =
-                        roleIcons[user.role as keyof typeof roleIcons] || User;
-                      const roleColor =
-                        roleColors[user.role as keyof typeof roleColors] ||
-                        "bg-gray-500";
+              <Table className="table-fixed w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[24%]">用户</TableHead>
+                    <TableHead className="w-[28%]">邮箱</TableHead>
+                    <TableHead className="w-[16%]">当前角色</TableHead>
+                    <TableHead className="w-[20%]">到期时间</TableHead>
+                    <TableHead className="w-[12%] min-w-[180px]">
+                      操作
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedUsers.map((user) => {
+                    const RoleIcon =
+                      roleIcons[user.role as keyof typeof roleIcons] || User;
+                    const roleColor =
+                      roleColors[user.role as keyof typeof roleColors] ||
+                      "bg-gray-500";
 
-                      return (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              {user.image ? (
-                                <Image
-                                  src={user.image}
-                                  alt={user.name || user.username}
-                                  width={32}
-                                  height={32}
-                                  className="w-8 h-8 rounded-full"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                  <User className="h-4 w-4" />
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-medium">
-                                  {user.name || user.username}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  @{user.username}
-                                </div>
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {user.image ? (
+                              <Image
+                                src={user.image}
+                                alt={user.name || user.username}
+                                width={32}
+                                height={32}
+                                className="w-8 h-8 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <User className="h-4 w-4" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium">
+                                {user.name || user.username}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                @{user.username}
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell className="truncate">
-                            <span className="truncate block max-w-[260px]">
-                              {user.email}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`${roleColor} text-white`}>
-                              <RoleIcon className="h-3 w-3 mr-1" />
-                              {user.roleName}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {user.role === "temp_user" && user.tempExpiresAt
-                              ? new Date(user.tempExpiresAt).toLocaleString()
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap overflow-visible pr-4">
-                            <div className="flex items-center gap-2 flex-nowrap">
-                              <Select
-                                value={user.role}
-                                onValueChange={(newRole) =>
-                                  updateUserRole(user.id, newRole)
-                                }
-                                disabled={updating === user.id}
-                              >
-                                <SelectTrigger className="w-20 min-w-[88px] whitespace-nowrap">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {roleOptions.map((option) => (
-                                    <SelectItem
-                                      key={option.value}
-                                      value={option.value}
-                                    >
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="ml-2"
-                                disabled={
-                                  updating === user.id ||
-                                  user.role === "emperor"
-                                }
-                                onClick={() => deleteUser(user.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="truncate">
+                          <span className="truncate block max-w-[220px]">
+                            {user.email}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`${roleColor} text-white`}>
+                            <RoleIcon className="h-3 w-3 mr-1" />
+                            {user.roleName}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {user.role === "temp_user" && user.tempExpiresAt
+                            ? new Date(user.tempExpiresAt).toLocaleString()
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap overflow-visible pr-4">
+                          <div className="flex items-center gap-2 flex-nowrap">
+                            <Select
+                              value={user.role}
+                              onValueChange={(newRole) =>
+                                updateUserRole(user.id, newRole)
+                              }
+                              disabled={updating === user.id}
+                            >
+                              <SelectTrigger className="w-20 min-w-[88px] whitespace-nowrap">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {roleOptions.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="ml-2"
+                              disabled={
+                                updating === user.id || user.role === "emperor"
+                              }
+                              onClick={() => deleteUser(user.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-muted-foreground">
                   第 {currentPage} / {totalPages} 页
