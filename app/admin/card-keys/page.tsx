@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRolePermission } from "@/hooks/use-role-permission";
 import { PERMISSIONS } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
@@ -59,6 +66,9 @@ export default function CardKeysPage() {
   const [cardKeyToDelete, setCardKeyToDelete] = useState<CardKey | null>(null);
   const [autoReleaseEmperorOwned, setAutoReleaseEmperorOwned] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
   const { toast } = useToast();
   const { checkPermission } = useRolePermission();
   const router = useRouter();
@@ -93,23 +103,44 @@ export default function CardKeysPage() {
     }
   }, [canManageCardKeys, fetchCardKeys]);
 
-  // 状态筛选逻辑
+  // 状态 + 搜索 组合筛选
   useEffect(() => {
     const now = new Date();
-    if (selectedStatus === "all") {
-      setFilteredCardKeys(cardKeys);
-    } else if (selectedStatus === "unused") {
-      setFilteredCardKeys(
-        cardKeys.filter((key) => !key.isUsed && new Date(key.expiresAt) > now)
+    let result = cardKeys;
+    if (selectedStatus === "unused") {
+      result = result.filter(
+        (key) => !key.isUsed && new Date(key.expiresAt) > now
       );
     } else if (selectedStatus === "used") {
-      setFilteredCardKeys(cardKeys.filter((key) => key.isUsed));
+      result = result.filter((key) => key.isUsed);
     } else if (selectedStatus === "expired") {
-      setFilteredCardKeys(
-        cardKeys.filter((key) => new Date(key.expiresAt) <= now)
+      result = result.filter((key) => new Date(key.expiresAt) <= now);
+    }
+
+    const q = search.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (k) =>
+          k.code.toLowerCase().includes(q) ||
+          (k.emailAddress || "").toLowerCase().includes(q) ||
+          (k.usedBy?.name || "").toLowerCase().includes(q) ||
+          (k.usedBy?.username || "").toLowerCase().includes(q)
       );
     }
-  }, [cardKeys, selectedStatus]);
+
+    setFilteredCardKeys(result);
+    setCurrentPage(1);
+  }, [cardKeys, selectedStatus, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCardKeys.length / pageSize));
+  const paginatedCardKeys = useMemo(
+    () =>
+      filteredCardKeys.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+      ),
+    [filteredCardKeys, currentPage, pageSize]
+  );
 
   const generateCardKeys = async () => {
     const addresses = emailAddresses
@@ -349,12 +380,50 @@ export default function CardKeysPage() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="text-sm text-muted-foreground">
-              显示 {filteredCardKeys.length} 个卡密
+            <div className="mt-2 flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+              <div className="flex items-center gap-3">
+                <Input
+                  placeholder="搜索卡密/邮箱/使用者"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-[260px]"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  显示{" "}
+                  {Math.min(
+                    filteredCardKeys.length,
+                    (currentPage - 1) * pageSize + 1
+                  )}
+                  -{Math.min(currentPage * pageSize, filteredCardKeys.length)} /{" "}
+                  {filteredCardKeys.length}
+                </span>
+                <span className="mx-1">·</span>
+                <span>每页</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => {
+                    setPageSize(Number(v));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[80px]">
+                    <SelectValue placeholder="每页" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50].map((s) => (
+                      <SelectItem key={s} value={String(s)}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <div className="grid gap-4">
-            {filteredCardKeys.map((cardKey) => (
+            {paginatedCardKeys.map((cardKey) => (
               <Card key={cardKey.id}>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -412,6 +481,31 @@ export default function CardKeysPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              第 {currentPage} / {totalPages} 页
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                上一页
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+              >
+                下一页
+              </Button>
+            </div>
           </div>
         </div>
       )}

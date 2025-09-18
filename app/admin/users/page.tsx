@@ -339,7 +339,9 @@ export default function UsersPage() {
                     <TableHead className="w-[30%]">邮箱</TableHead>
                     <TableHead className="w-[16%]">当前角色</TableHead>
                     <TableHead className="w-[16%]">到期时间</TableHead>
-                    <TableHead className="w-[10%]">操作</TableHead>
+                    <TableHead className="w-[10%] min-w-[140px]">
+                      操作
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -393,8 +395,8 @@ export default function UsersPage() {
                             ? new Date(user.tempExpiresAt).toLocaleString()
                             : "-"}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center gap-2 flex-nowrap">
                             <Select
                               value={user.role}
                               onValueChange={(newRole) =>
@@ -402,7 +404,7 @@ export default function UsersPage() {
                               }
                               disabled={updating === user.id}
                             >
-                              <SelectTrigger className="w-32">
+                              <SelectTrigger className="w-24 min-w-[96px] whitespace-nowrap">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
