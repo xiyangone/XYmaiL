@@ -532,6 +532,12 @@ XiYang Mail 支持通过卡密快速创建临时账号，用户可以跳过注�
 - `CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS`: 是否删除“过期未使用”的卡密，`true/false`，默认 `true`
 - `CARD_KEY_DEFAULT_DAYS`: 卡密默认有效期（天），数值，默认 `7`
 
+- 注释实践（可选）：Cloudflare KV 不支持原生注释，如需备注某键的含义/使用范围，可额外维护一条以 `COMMENT__` 为前缀的键，例如：
+  - `COMMENT__CLEANUP_DELETE_USED_EXPIRED_CARD_KEYS`
+  - `COMMENT__CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS`
+  - `COMMENT__CLEANUP_DELETE_EXPIRED_EMAILS`
+    这些注释键的值仅作为说明文本，无业务逻辑影响。
+
 **皇帝**角色可以在个人中心页面设置
 
 ## 管理后台：分类查看功能

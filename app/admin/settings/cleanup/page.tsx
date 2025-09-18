@@ -20,6 +20,11 @@ export default function CleanupSettingsPage() {
   const [cleanupExpiredEmails, setCleanupExpiredEmails] = useState(true);
   const [cleanupExpiredUnused, setCleanupExpiredUnused] = useState(true);
 
+  // 可选注释（存入 COMMENT__ 前缀 KV）
+  const [commentUsedExpired, setCommentUsedExpired] = useState("");
+  const [commentExpiredUnused, setCommentExpiredUnused] = useState("");
+  const [commentExpiredEmails, setCommentExpiredEmails] = useState("");
+
   useEffect(() => {
     const run = async () => {
       setLoading(true);
@@ -28,8 +33,8 @@ export default function CleanupSettingsPage() {
       try {
         const res = await fetch("/api/config", { cache: "no-store" });
         if (!res.ok) throw new Error(`获取配置失败（${res.status}）`);
-        const data = await res.json();
-        setDefaultRole(data.defaultRole || "CIVILIAN");
+        const data = (await res.json()) as any;
+        setDefaultRole((data as any).defaultRole || "CIVILIAN");
         setEmailDomains(data.emailDomains || "");
         setAdminContact(data.adminContact || "");
         setMaxEmails(data.maxEmails || "10");
@@ -45,6 +50,13 @@ export default function CleanupSettingsPage() {
           (data.cleanupDeleteExpiredUnusedCardKeys ?? "true").toLowerCase() ===
             "true"
         );
+        setCommentUsedExpired(
+          data.commentCleanupDeleteUsedExpiredCardKeys || ""
+        );
+        setCommentExpiredUnused(
+          data.commentCleanupDeleteExpiredUnusedCardKeys || ""
+        );
+        setCommentExpiredEmails(data.commentCleanupDeleteExpiredEmails || "");
       } catch (e) {
         setError(e instanceof Error ? e.message : "获取配置失败");
       } finally {
@@ -71,6 +83,9 @@ export default function CleanupSettingsPage() {
           cleanupDeleteExpiredEmails: cleanupExpiredEmails,
           cleanupDeleteExpiredUnusedCardKeys: cleanupExpiredUnused,
           cardKeyDefaultDays,
+          commentCleanupDeleteUsedExpiredCardKeys: commentUsedExpired,
+          commentCleanupDeleteExpiredUnusedCardKeys: commentExpiredUnused,
+          commentCleanupDeleteExpiredEmails: commentExpiredEmails,
         }),
       });
       if (!res.ok) {
@@ -89,8 +104,8 @@ export default function CleanupSettingsPage() {
     <div className="p-6 max-w-3xl">
       <h1 className="text-2xl font-semibold mb-4">清理与到期策略</h1>
       <p className="text-sm text-muted-foreground mb-6">
-        仅皇帝可编辑。开关生效于服务端 Edge 运行时，定时清理由 Worker 或 Pages Scheduled Triggers 调用
-        /api/cleanup/temp-accounts。
+        仅皇帝可编辑。开关生效于服务端 Edge 运行时，定时清理由 Worker 或 Pages
+        Scheduled Triggers 调用 /api/cleanup/temp-accounts。
       </p>
 
       {loading ? (
@@ -112,7 +127,17 @@ export default function CleanupSettingsPage() {
                 onChange={(e) => setCleanupUsedExpired(e.target.checked)}
               />
             </div>
-            <div className="flex items-center justify-between border rounded p-3">
+            <div className="mt-2">
+              <textarea
+                value={commentUsedExpired}
+                onChange={(e) => setCommentUsedExpired(e.target.value)}
+                placeholder="此开关的备注说明（可选，不写即为空）"
+                className="w-full border rounded p-2 text-sm"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex items-center justify-between border rounded p-3 mt-4">
               <div>
                 <div className="font-medium">删除“过期未使用”的卡密</div>
                 <div className="text-xs text-muted-foreground">
@@ -125,7 +150,17 @@ export default function CleanupSettingsPage() {
                 onChange={(e) => setCleanupExpiredUnused(e.target.checked)}
               />
             </div>
-            <div className="flex items-center justify-between border rounded p-3">
+            <div className="mt-2">
+              <textarea
+                value={commentExpiredUnused}
+                onChange={(e) => setCommentExpiredUnused(e.target.value)}
+                placeholder="此开关的备注说明（可选，不写即为空）"
+                className="w-full border rounded p-2 text-sm"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex items-center justify-between border rounded p-3 mt-4">
               <div>
                 <div className="font-medium">删除“已过期邮箱（含消息）”</div>
                 <div className="text-xs text-muted-foreground">
@@ -138,10 +173,21 @@ export default function CleanupSettingsPage() {
                 onChange={(e) => setCleanupExpiredEmails(e.target.checked)}
               />
             </div>
+            <div className="mt-2">
+              <textarea
+                value={commentExpiredEmails}
+                onChange={(e) => setCommentExpiredEmails(e.target.value)}
+                placeholder="此开关的备注说明（可选，不写即为空）"
+                className="w-full border rounded p-2 text-sm"
+                rows={2}
+              />
+            </div>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-lg font-medium">只读信息（保存时会原样带回）</h2>
+            <h2 className="text-lg font-medium">
+              只读信息（保存时会原样带回）
+            </h2>
             <div className="grid grid-cols-1 gap-3">
               <label className="text-sm">
                 默认角色（只读）：
@@ -206,4 +252,3 @@ export default function CleanupSettingsPage() {
     </div>
   );
 }
-

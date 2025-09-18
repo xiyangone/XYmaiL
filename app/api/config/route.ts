@@ -16,6 +16,9 @@ export async function GET() {
     cleanupExpiredEmails,
     cleanupExpiredUnused,
     cardKeyDefaultDays,
+    commentUsedExpired,
+    commentExpiredUnused,
+    commentExpiredEmails,
   ] = await Promise.all([
     env.SITE_CONFIG.get("DEFAULT_ROLE"),
     env.SITE_CONFIG.get("EMAIL_DOMAINS"),
@@ -25,6 +28,9 @@ export async function GET() {
     env.SITE_CONFIG.get("CLEANUP_DELETE_EXPIRED_EMAILS"),
     env.SITE_CONFIG.get("CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS"),
     env.SITE_CONFIG.get("CARD_KEY_DEFAULT_DAYS"),
+    env.SITE_CONFIG.get("COMMENT__CLEANUP_DELETE_USED_EXPIRED_CARD_KEYS"),
+    env.SITE_CONFIG.get("COMMENT__CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS"),
+    env.SITE_CONFIG.get("COMMENT__CLEANUP_DELETE_EXPIRED_EMAILS"),
   ]);
 
   return Response.json({
@@ -38,6 +44,10 @@ export async function GET() {
       cleanupExpiredUnused ?? "true"
     ).toString(),
     cardKeyDefaultDays: (cardKeyDefaultDays ?? "7").toString(),
+    // 可选注释（以 COMMENT__ 前缀的 KV 键存储）
+    commentCleanupDeleteUsedExpiredCardKeys: commentUsedExpired || "",
+    commentCleanupDeleteExpiredUnusedCardKeys: commentExpiredUnused || "",
+    commentCleanupDeleteExpiredEmails: commentExpiredEmails || "",
   });
 }
 
@@ -62,6 +72,9 @@ export async function POST(request: Request) {
     cleanupDeleteExpiredEmails,
     cleanupDeleteExpiredUnusedCardKeys,
     cardKeyDefaultDays,
+    commentCleanupDeleteUsedExpiredCardKeys,
+    commentCleanupDeleteExpiredUnusedCardKeys,
+    commentCleanupDeleteExpiredEmails,
   } = (await request.json()) as {
     defaultRole: Exclude<Role, typeof ROLES.EMPEROR>;
     emailDomains: string;
@@ -71,6 +84,9 @@ export async function POST(request: Request) {
     cleanupDeleteExpiredEmails?: string | boolean;
     cleanupDeleteExpiredUnusedCardKeys?: string | boolean;
     cardKeyDefaultDays?: string | number;
+    commentCleanupDeleteUsedExpiredCardKeys?: string;
+    commentCleanupDeleteExpiredUnusedCardKeys?: string;
+    commentCleanupDeleteExpiredEmails?: string;
   };
 
   if (
@@ -110,6 +126,19 @@ export async function POST(request: Request) {
         ? cleanupDeleteExpiredUnusedCardKeys
         : cleanupDeleteExpiredUnusedCardKeys ?? "true"
       ).toString()
+    ),
+    // 注释键（可选）
+    env.SITE_CONFIG.put(
+      "COMMENT__CLEANUP_DELETE_USED_EXPIRED_CARD_KEYS",
+      (commentCleanupDeleteUsedExpiredCardKeys ?? "").toString()
+    ),
+    env.SITE_CONFIG.put(
+      "COMMENT__CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS",
+      (commentCleanupDeleteExpiredUnusedCardKeys ?? "").toString()
+    ),
+    env.SITE_CONFIG.put(
+      "COMMENT__CLEANUP_DELETE_EXPIRED_EMAILS",
+      (commentCleanupDeleteExpiredEmails ?? "").toString()
     ),
     env.SITE_CONFIG.put(
       "CARD_KEY_DEFAULT_DAYS",
