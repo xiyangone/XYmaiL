@@ -150,13 +150,8 @@ export function EmailServiceConfig() {
                 启用 Resend 发件服务
               </Label>
               <p className="text-xs text-muted-foreground mt-1">
-                请粘贴 Resend 后台生成的 API Key（通常以 re_
-                开头）。注意：发件前需在 Resend Domains 验证发件域名，否则会报
-                “The domain is not verified”。
-              </p>
-
-              <p className="text-xs text-muted-foreground">
-                开启后将使用 Resend 发送邮件
+                粘贴以 re_ 开头的 Resend API Key（详细指引见 README
+                的“发件功能”）。
               </p>
             </div>
             <Switch

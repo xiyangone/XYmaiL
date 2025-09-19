@@ -27,10 +27,6 @@ export function WebsiteConfigPanel() {
   );
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  // 新增：清理开关与卡密默认天数
-  const [cleanupUsedExpired, setCleanupUsedExpired] = useState<boolean>(true);
-  const [cleanupEmails, setCleanupEmails] = useState<boolean>(true);
-  const [cardKeyDefaultDays, setCardKeyDefaultDays] = useState<string>("7");
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(true);
 
   const [expanded, setExpanded] = useState(false);
@@ -63,23 +59,12 @@ export function WebsiteConfigPanel() {
         emailDomains: string;
         adminContact: string;
         maxEmails: string;
-        cleanupDeleteUsedExpiredCardKeys?: string;
-        cleanupDeleteExpiredEmails?: string;
-        cardKeyDefaultDays?: string;
         registrationEnabled?: string;
       };
       setDefaultRole(data.defaultRole);
       setEmailDomains(data.emailDomains);
       setAdminContact(data.adminContact);
       setMaxEmails(data.maxEmails || EMAIL_CONFIG.MAX_ACTIVE_EMAILS.toString());
-      setCleanupUsedExpired(
-        (data.cleanupDeleteUsedExpiredCardKeys ?? "true").toLowerCase() ===
-          "true"
-      );
-      setCleanupEmails(
-        (data.cleanupDeleteExpiredEmails ?? "true").toLowerCase() === "true"
-      );
-      setCardKeyDefaultDays(data.cardKeyDefaultDays ?? "7");
       setRegistrationEnabled(
         (data.registrationEnabled ?? "true").toLowerCase() === "true"
       );
@@ -97,9 +82,6 @@ export function WebsiteConfigPanel() {
           emailDomains,
           adminContact,
           maxEmails: maxEmails || EMAIL_CONFIG.MAX_ACTIVE_EMAILS.toString(),
-          cleanupDeleteUsedExpiredCardKeys: cleanupUsedExpired,
-          cleanupDeleteExpiredEmails: cleanupEmails,
-          cardKeyDefaultDays,
           registrationEnabled,
         }),
       });
@@ -216,47 +198,6 @@ export function WebsiteConfigPanel() {
               checked={registrationEnabled}
               onCheckedChange={setRegistrationEnabled}
             />
-          </div>
-
-          {/* 新增：清理策略与默认天数 */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>清理已使用且过期的卡密</Label>
-              <div className="text-sm text-muted-foreground">
-                开启后，过期卡密（包含已使用）将被自动清理
-              </div>
-            </div>
-            <Switch
-              checked={cleanupUsedExpired}
-              onCheckedChange={setCleanupUsedExpired}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>清理过期邮箱</Label>
-              <div className="text-sm text-muted-foreground">
-                开启后，邮箱过期后将被自动删除（会级联删除消息）
-              </div>
-            </div>
-            <Switch
-              checked={cleanupEmails}
-              onCheckedChange={setCleanupEmails}
-            />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-sm">卡密默认有效期（天）:</span>
-            <div className="flex-1">
-              <Input
-                type="number"
-                min="1"
-                max="365"
-                value={cardKeyDefaultDays}
-                onChange={(e) => setCardKeyDefaultDays(e.target.value)}
-                placeholder="默认为 7"
-              />
-            </div>
           </div>
 
           <Button onClick={handleSave} disabled={loading} className="w-full">
