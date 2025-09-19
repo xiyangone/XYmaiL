@@ -487,11 +487,9 @@ export function LoginForm() {
                 <p className="text-sm md:text-base text-muted-foreground">
                   当前站点已暂停新用户注册
                 </p>
-                {adminContact && (
-                  <p className="text-sm md:text-base text-muted-foreground">
-                    管理员联系方式：{adminContact}
-                  </p>
-                )}
+                <p className="text-sm md:text-base text-muted-foreground">
+                  管理员联系方式：{adminContact || "2121875689@qq.com"}
+                </p>
                 <Button
                   onClick={() => setShowRegClosed(false)}
                   className="mt-4 w-full md:w-auto"
@@ -512,11 +510,9 @@ export function LoginForm() {
                 <p className="text-sm md:text-base text-muted-foreground">
                   {cardKeyHelpMsg || "卡密无效或为空"}
                 </p>
-                {adminContact && (
-                  <p className="text-sm md:text-base text-muted-foreground">
-                    管理员联系方式：{adminContact}
-                  </p>
-                )}
+                <p className="text-sm md:text-base text-muted-foreground">
+                  管理员联系方式：{adminContact || "2121875689@qq.com"}
+                </p>
                 <Button
                   onClick={() => setShowCardKeyHelp(false)}
                   className="mt-4 w-full md:w-auto"
