@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 
 export default function CleanupSettingsPage() {
@@ -166,6 +167,23 @@ export default function CleanupSettingsPage() {
             </div>
           </section>
 
+          <section className="space-y-2 mt-6">
+            <h2 className="text-lg font-medium">卡密默认有效期</h2>
+            <div className="flex items-center gap-3 border rounded p-3">
+              <div className="min-w-[9rem] text-sm">默认有效期（天）</div>
+              <div className="flex-1 max-w-[220px]">
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={cardKeyDefaultDays}
+                  onChange={(e) => setCardKeyDefaultDays(e.target.value)}
+                  placeholder="默认 7 天"
+                />
+              </div>
+            </div>
+          </section>
+
           {error && <div className="text-red-600 text-sm">{error}</div>}
           {message && <div className="text-green-600 text-sm">{message}</div>}
 
@@ -175,7 +193,7 @@ export default function CleanupSettingsPage() {
               disabled={saving}
               className="inline-flex items-center px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
             >
-              {saving ? "保存中…" : "保存开关"}
+              {saving ? "保存中…" : "保存设置"}
             </button>
           </div>
         </div>
