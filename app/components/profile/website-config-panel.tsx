@@ -16,6 +16,7 @@ import {
 import { EMAIL_CONFIG } from "@/config";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useRouter } from "next/navigation";
 
 export function WebsiteConfigPanel() {
   const [defaultRole, setDefaultRole] = useState<string>("");
@@ -30,6 +31,8 @@ export function WebsiteConfigPanel() {
   const [cleanupUsedExpired, setCleanupUsedExpired] = useState<boolean>(true);
   const [cleanupEmails, setCleanupEmails] = useState<boolean>(true);
   const [cardKeyDefaultDays, setCardKeyDefaultDays] = useState<string>("7");
+  const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     fetchConfig();
@@ -98,11 +101,34 @@ export function WebsiteConfigPanel() {
 
   return (
     <div className="bg-background rounded-lg border-2 border-primary/20 p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Settings className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-semibold">网站设置</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div
+          className="flex items-center gap-2 cursor-pointer select-none"
+          onClick={() => setExpanded((v) => !v)}
+          title={expanded ? "收起" : "展开"}
+        >
+          <Settings className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold">网站设置</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/admin/settings/cleanup")}
+          >
+            清理与到期策略
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? "收起" : "展开"}
+          </Button>
+        </div>
       </div>
 
+      {expanded && (
       <div className="space-y-4">
         <div className="flex items-center gap-4">
           <span className="text-sm">新用户默认角色:</span>
@@ -196,6 +222,7 @@ export function WebsiteConfigPanel() {
           保存
         </Button>
       </div>
+      )
     </div>
   );
 }

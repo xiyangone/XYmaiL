@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Zap, Eye, EyeOff } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Zap, Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface EmailServiceConfig {
-  enabled: boolean
-  apiKey: string
+  enabled: boolean;
+  apiKey: string;
   roleLimits: {
-    duke: number
-    knight: number
-  }
+    duke: number;
+    knight: number;
+  };
 }
 
 export function EmailServiceConfig() {
@@ -25,69 +25,84 @@ export function EmailServiceConfig() {
     roleLimits: {
       duke: -1,
       knight: -1,
-    }
-  })
-  const [loading, setLoading] = useState(false)
-  const [showToken, setShowToken] = useState(false)
-  const { toast } = useToast()
+    },
+  });
+  const [loading, setLoading] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchConfig()
-  }, [])
+    fetchConfig();
+  }, []);
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch("/api/config/email-service")
+      const res = await fetch("/api/config/email-service");
       if (res.ok) {
-        const data = await res.json() as EmailServiceConfig
-        setConfig(data)
+        const data = (await res.json()) as EmailServiceConfig;
+        setConfig(data);
       }
     } catch (error) {
-      console.error("Failed to fetch email service config:", error)
+      console.error("Failed to fetch email service config:", error);
     }
-  }
+  };
 
   const handleSave = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const saveData = {
         enabled: config.enabled,
         apiKey: config.apiKey,
-        roleLimits: config.roleLimits
-      }
+        roleLimits: config.roleLimits,
+      };
 
       const res = await fetch("/api/config/email-service", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(saveData),
-      })
+      });
 
       if (!res.ok) {
-        const error = await res.json() as { error: string }
-        throw new Error(error.error || "保存失败")
+        const error = (await res.json()) as { error: string };
+        throw new Error(error.error || "保存失败");
       }
 
       toast({
         title: "保存成功",
         description: "Resend 发件服务配置已更新",
-      })
+      });
     } catch (error) {
       toast({
         title: "保存失败",
         description: error instanceof Error ? error.message : "请稍后重试",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="bg-background rounded-lg border-2 border-primary/20 p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Zap className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-semibold">Resend 发件服务配置</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div
+          className="flex items-center gap-2 cursor-pointer select-none"
+          onClick={() => setExpanded((v) => !v)}
+          title={expanded ? "收起" : "展开"}
+        >
+          <Zap className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold">Resend 发件服务配置</h2>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "收起" : "展开"}
+        </Button>
       </div>
+      {expanded && (
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -103,7 +118,10 @@ export function EmailServiceConfig() {
             id="enabled"
             checked={config.enabled}
             onCheckedChange={(checked: boolean) =>
-              setConfig((prev: EmailServiceConfig) => ({ ...prev, enabled: checked }))
+              setConfig((prev: EmailServiceConfig) => ({
+                ...prev,
+                enabled: checked,
+              }))
             }
           />
         </div>
@@ -119,7 +137,12 @@ export function EmailServiceConfig() {
                   id="apiKey"
                   type={showToken ? "text" : "password"}
                   value={config.apiKey}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig((prev: EmailServiceConfig) => ({ ...prev, apiKey: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setConfig((prev: EmailServiceConfig) => ({
+                      ...prev,
+                      apiKey: e.target.value,
+                    }))
+                  }
                   placeholder="输入 Resend API Key"
                 />
                 <Button
@@ -151,33 +174,48 @@ export function EmailServiceConfig() {
                   <div className="space-y-2 text-blue-800">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                      <span><strong>Emperor (皇帝)</strong> - 可以无限发件，不受任何限制</span>
+                      <span>
+                        <strong>Emperor (皇帝)</strong> -
+                        可以无限发件，不受任何限制
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                      <span><strong>Civilian (平民)</strong> - 永远不能发件</span>
+                      <span>
+                        <strong>Civilian (平民)</strong> - 永远不能发件
+                      </span>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    <p className="text-sm font-medium text-gray-900">可配置的角色权限</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      可配置的角色权限
+                    </p>
                   </div>
                   {[
-                    { value: "duke", label: "Duke (公爵)", key: "duke" as const },
-                    { value: "knight", label: "Knight (骑士)", key: "knight" as const }
+                    {
+                      value: "duke",
+                      label: "Duke (公爵)",
+                      key: "duke" as const,
+                    },
+                    {
+                      value: "knight",
+                      label: "Knight (骑士)",
+                      key: "knight" as const,
+                    },
                   ].map((role) => {
-                    const isDisabled = config.roleLimits[role.key] === -1
-                    const isEnabled = !isDisabled
-                    
+                    const isDisabled = config.roleLimits[role.key] === -1;
+                    const isEnabled = !isDisabled;
+
                     return (
-                      <div 
-                        key={role.value} 
+                      <div
+                        key={role.value}
                         className={`group relative p-4 border-2 rounded-xl transition-all duration-200 ${
                           isEnabled
-                            ? 'border-primary/30 bg-primary/5 shadow-sm' 
-                            : 'border-gray-200 hover:border-primary/20 hover:shadow-sm'
+                            ? "border-primary/30 bg-primary/5 shadow-sm"
+                            : "border-gray-200 hover:border-primary/20 hover:shadow-sm"
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -191,56 +229,67 @@ export function EmailServiceConfig() {
                                     ...prev,
                                     roleLimits: {
                                       ...prev.roleLimits,
-                                      [role.key]: checked ? 0 : -1
-                                    }
-                                  }))
+                                      [role.key]: checked ? 0 : -1,
+                                    },
+                                  }));
                                 }}
                               />
                             </div>
                             <div>
-                              <Label 
-                                htmlFor={`role-${role.value}`} 
+                              <Label
+                                htmlFor={`role-${role.value}`}
                                 className="text-base font-semibold cursor-pointer select-none flex items-center gap-2"
                               >
                                 <span className="text-2xl">
-                                  {role.value === 'duke' ? '🏰' : '⚔️'}
+                                  {role.value === "duke" ? "🏰" : "⚔️"}
                                 </span>
                                 {role.label}
                               </Label>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {isEnabled ? '已启用发件权限' : '未启用发件权限'}
+                                {isEnabled
+                                  ? "已启用发件权限"
+                                  : "未启用发件权限"}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="text-right">
-                              <Label className="text-xs font-medium text-gray-600 block mb-1">每日限制</Label>
+                              <Label className="text-xs font-medium text-gray-600 block mb-1">
+                                每日限制
+                              </Label>
                               <div className="flex items-center space-x-2">
                                 <Input
                                   type="number"
                                   min="-1"
                                   value={config.roleLimits[role.key]}
-                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                                  onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>
+                                  ) =>
                                     setConfig((prev: EmailServiceConfig) => ({
                                       ...prev,
                                       roleLimits: {
                                         ...prev.roleLimits,
-                                        [role.key]: parseInt(e.target.value) || 0
-                                      }
+                                        [role.key]:
+                                          parseInt(e.target.value) || 0,
+                                      },
                                     }))
                                   }
                                   className="w-20 h-9 text-center text-sm font-medium"
                                   placeholder="0"
                                   disabled={isDisabled}
                                 />
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">封/天</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  封/天
+                                </span>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">0 = 无限制</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                0 = 无限制
+                              </p>
                             </div>
                           </div>
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -248,14 +297,11 @@ export function EmailServiceConfig() {
           </>
         )}
 
-        <Button 
-          onClick={handleSave}
-          disabled={loading}
-          className="w-full"
-        >
+        <Button onClick={handleSave} disabled={loading} className="w-full">
           {loading ? "保存中..." : "保存配置"}
         </Button>
       </div>
+      )
     </div>
-  )
-} 
+  );
+}

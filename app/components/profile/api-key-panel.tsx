@@ -49,6 +49,7 @@ export function ApiKeyPanel() {
   const { copyToClipboard } = useCopy();
   const [showExamples, setShowExamples] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const { checkPermission } = useRolePermission();
   const canManageApiKey = checkPermission(PERMISSIONS.MANAGE_API_KEY);
 
@@ -165,89 +166,99 @@ export function ApiKeyPanel() {
           <Key className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">API Keys</h2>
         </div>
-        {canManageApiKey && (
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                className="gap-2"
-                onClick={() => setCreateDialogOpen(true)}
-              >
-                <Plus className="w-4 h-4" />
-                创建 API Key
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {newKey ? "API Key 创建成功" : "创建新的 API Key"}
-                </DialogTitle>
-                {newKey && (
-                  <DialogDescription className="text-destructive">
-                    请立即保存此密钥，它只会显示一次且无法恢复
-                  </DialogDescription>
-                )}
-              </DialogHeader>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? "收起" : "展开"}
+          </Button>
+          {canManageApiKey && (
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  className="gap-2"
+                  onClick={() => setCreateDialogOpen(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  创建 API Key
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {newKey ? "API Key 创建成功" : "创建新的 API Key"}
+                  </DialogTitle>
+                  {newKey && (
+                    <DialogDescription className="text-destructive">
+                      请立即保存此密钥，它只会显示一次且无法恢复
+                    </DialogDescription>
+                  )}
+                </DialogHeader>
 
-              {!newKey ? (
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>名称</Label>
-                    <Input
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                      placeholder="为你的 API Key 起个名字"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>API Key</Label>
-                    <div className="flex gap-2">
+                {!newKey ? (
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>名称</Label>
                       <Input
-                        value={newKey}
-                        readOnly
-                        className="font-mono text-sm"
+                        value={newKeyName}
+                        onChange={(e) => setNewKeyName(e.target.value)}
+                        placeholder="为你的 API Key 起个名字"
                       />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => copyToClipboard(newKey)}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
-                </div>
-              )}
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button
-                    variant="outline"
-                    onClick={handleDialogClose}
-                    disabled={loading}
-                  >
-                    {newKey ? "完成" : "取消"}
-                  </Button>
-                </DialogClose>
-                {!newKey && (
-                  <Button
-                    onClick={createApiKey}
-                    disabled={loading || !newKeyName.trim()}
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      "创建"
-                    )}
-                  </Button>
+                ) : (
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>API Key</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newKey}
+                          readOnly
+                          className="font-mono text-sm"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => copyToClipboard(newKey)}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button
+                      variant="outline"
+                      onClick={handleDialogClose}
+                      disabled={loading}
+                    >
+                      {newKey ? "完成" : "取消"}
+                    </Button>
+                  </DialogClose>
+                  {!newKey && (
+                    <Button
+                      onClick={createApiKey}
+                      disabled={loading || !newKeyName.trim()}
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "创建"
+                      )}
+                    </Button>
+                  )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
+      {expanded && (
 
       {!canManageApiKey ? (
         <div className="text-center text-muted-foreground py-8">
