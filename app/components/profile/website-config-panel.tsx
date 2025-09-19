@@ -144,100 +144,103 @@ export function WebsiteConfigPanel() {
       </div>
 
       {expanded && (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <span className="text-sm">新用户默认角色:</span>
-          <Select value={defaultRole} onValueChange={setDefaultRole}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ROLES.DUKE}>公爵</SelectItem>
-              <SelectItem value={ROLES.KNIGHT}>骑士</SelectItem>
-              <SelectItem value={ROLES.CIVILIAN}>平民</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <span className="text-sm">邮箱域名:</span>
-          <div className="flex-1">
-            <Input
-              value={emailDomains}
-              onChange={(e) => setEmailDomains(e.target.value)}
-              placeholder="多个域名用逗号分隔，如: moemail.app,bitibiti.com"
-            />
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm">新用户默认角色:</span>
+            <Select value={defaultRole} onValueChange={setDefaultRole}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ROLES.DUKE}>公爵</SelectItem>
+                <SelectItem value={ROLES.KNIGHT}>骑士</SelectItem>
+                <SelectItem value={ROLES.CIVILIAN}>平民</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-sm">管理员联系方式:</span>
-          <div className="flex-1">
-            <Input
-              value={adminContact}
-              onChange={(e) => setAdminContact(e.target.value)}
-              placeholder="如: 微信号、邮箱等"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <span className="text-sm">最大邮箱数量:</span>
-          <div className="flex-1">
-            <Input
-              type="number"
-              min="1"
-              max="100"
-              value={maxEmails}
-              onChange={(e) => setMaxEmails(e.target.value)}
-              placeholder={`默认为 ${EMAIL_CONFIG.MAX_ACTIVE_EMAILS}`}
-            />
-          </div>
-        </div>
-
-        {/* 新增：清理策略与默认天数 */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label>清理已使用且过期的卡密</Label>
-            <div className="text-sm text-muted-foreground">
-              开启后，过期卡密（包含已使用）将被自动清理
+          <div className="flex items-center gap-4">
+            <span className="text-sm">邮箱域名:</span>
+            <div className="flex-1">
+              <Input
+                value={emailDomains}
+                onChange={(e) => setEmailDomains(e.target.value)}
+                placeholder="多个域名用逗号分隔，如: moemail.app,bitibiti.com"
+              />
             </div>
           </div>
-          <Switch
-            checked={cleanupUsedExpired}
-            onCheckedChange={setCleanupUsedExpired}
-          />
-        </div>
 
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label>清理过期邮箱</Label>
-            <div className="text-sm text-muted-foreground">
-              开启后，邮箱过期后将被自动删除（会级联删除消息）
+          <div className="flex items-center gap-4">
+            <span className="text-sm">管理员联系方式:</span>
+            <div className="flex-1">
+              <Input
+                value={adminContact}
+                onChange={(e) => setAdminContact(e.target.value)}
+                placeholder="如: 微信号、邮箱等"
+              />
             </div>
           </div>
-          <Switch checked={cleanupEmails} onCheckedChange={setCleanupEmails} />
-        </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-sm">卡密默认有效期（天）:</span>
-          <div className="flex-1">
-            <Input
-              type="number"
-              min="1"
-              max="365"
-              value={cardKeyDefaultDays}
-              onChange={(e) => setCardKeyDefaultDays(e.target.value)}
-              placeholder="默认为 7"
+          <div className="flex items-center gap-4">
+            <span className="text-sm">最大邮箱数量:</span>
+            <div className="flex-1">
+              <Input
+                type="number"
+                min="1"
+                max="100"
+                value={maxEmails}
+                onChange={(e) => setMaxEmails(e.target.value)}
+                placeholder={`默认为 ${EMAIL_CONFIG.MAX_ACTIVE_EMAILS}`}
+              />
+            </div>
+          </div>
+
+          {/* 新增：清理策略与默认天数 */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>清理已使用且过期的卡密</Label>
+              <div className="text-sm text-muted-foreground">
+                开启后，过期卡密（包含已使用）将被自动清理
+              </div>
+            </div>
+            <Switch
+              checked={cleanupUsedExpired}
+              onCheckedChange={setCleanupUsedExpired}
             />
           </div>
-        </div>
 
-        <Button onClick={handleSave} disabled={loading} className="w-full">
-          保存
-        </Button>
-      </div>
-      )
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>清理过期邮箱</Label>
+              <div className="text-sm text-muted-foreground">
+                开启后，邮箱过期后将被自动删除（会级联删除消息）
+              </div>
+            </div>
+            <Switch
+              checked={cleanupEmails}
+              onCheckedChange={setCleanupEmails}
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="text-sm">卡密默认有效期（天）:</span>
+            <div className="flex-1">
+              <Input
+                type="number"
+                min="1"
+                max="365"
+                value={cardKeyDefaultDays}
+                onChange={(e) => setCardKeyDefaultDays(e.target.value)}
+                placeholder="默认为 7"
+              />
+            </div>
+          </div>
+
+          <Button onClick={handleSave} disabled={loading} className="w-full">
+            保存
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
