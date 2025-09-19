@@ -31,6 +31,8 @@ export function WebsiteConfigPanel() {
   const [cleanupUsedExpired, setCleanupUsedExpired] = useState<boolean>(true);
   const [cleanupEmails, setCleanupEmails] = useState<boolean>(true);
   const [cardKeyDefaultDays, setCardKeyDefaultDays] = useState<string>("7");
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(true);
+
   const [expanded, setExpanded] = useState(false);
   const router = useRouter();
 
@@ -64,6 +66,7 @@ export function WebsiteConfigPanel() {
         cleanupDeleteUsedExpiredCardKeys?: string;
         cleanupDeleteExpiredEmails?: string;
         cardKeyDefaultDays?: string;
+        registrationEnabled?: string;
       };
       setDefaultRole(data.defaultRole);
       setEmailDomains(data.emailDomains);
@@ -77,6 +80,9 @@ export function WebsiteConfigPanel() {
         (data.cleanupDeleteExpiredEmails ?? "true").toLowerCase() === "true"
       );
       setCardKeyDefaultDays(data.cardKeyDefaultDays ?? "7");
+      setRegistrationEnabled(
+        (data.registrationEnabled ?? "true").toLowerCase() === "true"
+      );
     }
   };
 
@@ -94,6 +100,7 @@ export function WebsiteConfigPanel() {
           cleanupDeleteUsedExpiredCardKeys: cleanupUsedExpired,
           cleanupDeleteExpiredEmails: cleanupEmails,
           cardKeyDefaultDays,
+          registrationEnabled,
         }),
       });
 
@@ -192,6 +199,19 @@ export function WebsiteConfigPanel() {
                 value={maxEmails}
                 onChange={(e) => setMaxEmails(e.target.value)}
                 placeholder={`默认为 ${EMAIL_CONFIG.MAX_ACTIVE_EMAILS}`}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>允许新用户注册</Label>
+                <div className="text-sm text-muted-foreground">
+                  关闭后，/api/auth/register 将拒绝新注册
+                </div>
+              </div>
+              <Switch
+                checked={registrationEnabled}
+                onCheckedChange={setRegistrationEnabled}
               />
             </div>
           </div>
