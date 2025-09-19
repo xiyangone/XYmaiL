@@ -31,6 +31,8 @@ export function LoginForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [showRegClosed, setShowRegClosed] = useState(false);
   const [adminContact, setAdminContact] = useState("");
+  const [showCardKeyHelp, setShowCardKeyHelp] = useState(false);
+  const [cardKeyHelpMsg, setCardKeyHelpMsg] = useState("");
 
   const { toast } = useToast();
 
@@ -163,11 +165,17 @@ export function LoginForm() {
 
   const handleCardKeyLogin = async () => {
     if (!cardKey.trim()) {
-      toast({
-        title: "错误",
-        description: "请输入卡密",
-        variant: "destructive",
-      });
+      setCardKeyHelpMsg("请输入有效的卡密；如您没有卡密，请联系管理员获取。");
+      setShowCardKeyHelp(true);
+      try {
+        if (!adminContact) {
+          const cfgRes = await fetch("/api/config");
+          if (cfgRes.ok) {
+            const d: any = await cfgRes.json();
+            setAdminContact(d?.adminContact || "");
+          }
+        }
+      } catch {}
       return;
     }
 
@@ -189,11 +197,19 @@ export function LoginForm() {
 
       if (result?.error) {
         console.log("[LOGIN] 卡密登录失败", { error: result.error });
-        toast({
-          title: "卡密登录失败",
-          description: result.error,
-          variant: "destructive",
-        });
+        setCardKeyHelpMsg(
+          result.error || "卡密无效或已使用，请联系管理员获取新的卡密。"
+        );
+        setShowCardKeyHelp(true);
+        try {
+          if (!adminContact) {
+            const cfgRes = await fetch("/api/config");
+            if (cfgRes.ok) {
+              const d: any = await cfgRes.json();
+              setAdminContact(d?.adminContact || "");
+            }
+          }
+        } catch {}
         setLoading(false);
         return;
       }
@@ -478,6 +494,31 @@ export function LoginForm() {
                 )}
                 <Button
                   onClick={() => setShowRegClosed(false)}
+                  className="mt-4 w-full md:w-auto"
+                >
+                  知道了
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showCardKeyHelp && (
+        <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50">
+          <div className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] w-[90%] max-w-md">
+            <div className="bg-background border-2 border-primary/20 rounded-lg p-6 md:p-10 shadow-lg">
+              <div className="text-center space-y-4">
+                <h1 className="text-xl md:text-2xl font-bold">卡密登录提示</h1>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  {cardKeyHelpMsg || "卡密无效或为空"}
+                </p>
+                {adminContact && (
+                  <p className="text-sm md:text-base text-muted-foreground">
+                    管理员联系方式：{adminContact}
+                  </p>
+                )}
+                <Button
+                  onClick={() => setShowCardKeyHelp(false)}
                   className="mt-4 w-full md:w-auto"
                 >
                   知道了
