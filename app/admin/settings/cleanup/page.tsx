@@ -91,7 +91,7 @@ export default function CleanupSettingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl">
+    <div className="p-4 sm:p-6 max-w-2xl md:max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-semibold">清理与到期策略</h1>
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
@@ -101,6 +101,9 @@ export default function CleanupSettingsPage() {
       <p className="text-xs text-muted-foreground mb-4">
         说明：以下开关为“自动清理”策略，保存后立即生效；定时清理由 Cloudflare
         Pages/Workers 的 Scheduled Triggers 调用 /api/cleanup/temp-accounts。
+        当前定时规则来自 wrangler.temp-cleanup.json 的 crons 配置：*/30 * * *
+        *（每 30 分钟）。本页仅用于展示说明，不在此处修改
+        wrangler.temp-cleanup.json。
       </p>
 
       {loading ? (
@@ -168,13 +171,15 @@ export default function CleanupSettingsPage() {
           {error && <div className="text-red-600 text-sm">{error}</div>}
           {message && <div className="text-green-600 text-sm">{message}</div>}
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            {saving ? "保存中…" : "保存开关"}
-          </button>
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+            >
+              {saving ? "保存中…" : "保存开关"}
+            </button>
+          </div>
         </div>
       )}
     </div>

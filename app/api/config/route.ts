@@ -19,6 +19,7 @@ export async function GET() {
     commentUsedExpired,
     commentExpiredUnused,
     commentExpiredEmails,
+    registrationEnabled,
   ] = await Promise.all([
     env.SITE_CONFIG.get("DEFAULT_ROLE"),
     env.SITE_CONFIG.get("EMAIL_DOMAINS"),
@@ -31,6 +32,7 @@ export async function GET() {
     env.SITE_CONFIG.get("COMMENT__CLEANUP_DELETE_USED_EXPIRED_CARD_KEYS"),
     env.SITE_CONFIG.get("COMMENT__CLEANUP_DELETE_EXPIRED_UNUSED_CARD_KEYS"),
     env.SITE_CONFIG.get("COMMENT__CLEANUP_DELETE_EXPIRED_EMAILS"),
+    env.SITE_CONFIG.get("REGISTRATION_ENABLED"),
   ]);
 
   return Response.json({
@@ -43,6 +45,8 @@ export async function GET() {
     cleanupDeleteExpiredUnusedCardKeys: (
       cleanupExpiredUnused ?? "true"
     ).toString(),
+    registrationEnabled: (registrationEnabled ?? "true").toString(),
+
     cardKeyDefaultDays: (cardKeyDefaultDays ?? "7").toString(),
     // 可选注释（以 COMMENT__ 前缀的 KV 键存储）
     commentCleanupDeleteUsedExpiredCardKeys: commentUsedExpired || "",
@@ -72,6 +76,7 @@ export async function POST(request: Request) {
     cleanupDeleteExpiredEmails,
     cleanupDeleteExpiredUnusedCardKeys,
     cardKeyDefaultDays,
+    registrationEnabled,
     commentCleanupDeleteUsedExpiredCardKeys,
     commentCleanupDeleteExpiredUnusedCardKeys,
     commentCleanupDeleteExpiredEmails,
@@ -84,6 +89,7 @@ export async function POST(request: Request) {
     cleanupDeleteExpiredEmails?: string | boolean;
     cleanupDeleteExpiredUnusedCardKeys?: string | boolean;
     cardKeyDefaultDays?: string | number;
+    registrationEnabled?: string | boolean;
     commentCleanupDeleteUsedExpiredCardKeys?: string;
     commentCleanupDeleteExpiredUnusedCardKeys?: string;
     commentCleanupDeleteExpiredEmails?: string;
@@ -118,6 +124,13 @@ export async function POST(request: Request) {
       (typeof cleanupDeleteExpiredEmails === "boolean"
         ? cleanupDeleteExpiredEmails
         : cleanupDeleteExpiredEmails ?? "true"
+      ).toString()
+    ),
+    env.SITE_CONFIG.put(
+      "REGISTRATION_ENABLED",
+      (typeof registrationEnabled === "boolean"
+        ? registrationEnabled
+        : registrationEnabled ?? "true"
       ).toString()
     ),
     env.SITE_CONFIG.put(

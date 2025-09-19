@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Github, Loader2, KeyRound, User2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfig } from "@/hooks/use-config";
 
 interface FormErrors {
   username?: string;
@@ -29,6 +30,9 @@ export function LoginForm() {
   const [cardKey, setCardKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showRegClosed, setShowRegClosed] = useState(false);
+  const { config } = useConfig();
+
   const { toast } = useToast();
 
   const validateLoginForm = () => {
@@ -100,6 +104,11 @@ export function LoginForm() {
       });
 
       const data = (await response.json()) as { error?: string };
+      if (response.status === 403) {
+        setShowRegClosed(true);
+        setLoading(false);
+        return;
+      }
 
       if (!response.ok) {
         toast({
@@ -439,6 +448,32 @@ export function LoginForm() {
           </div>
         </Tabs>
       </CardContent>
+
+      {showRegClosed && (
+        <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50">
+          <div className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] w-[90%] max-w-md">
+            <div className="bg-background border-2 border-primary/20 rounded-lg p-6 md:p-10 shadow-lg">
+              <div className="text-center space-y-4">
+                <h1 className="text-xl md:text-2xl font-bold">注册已关闭</h1>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  当前站点已暂停新用户注册
+                </p>
+                {config?.adminContact && (
+                  <p className="text-sm md:text-base text-muted-foreground">
+                    管理员联系方式：{config.adminContact}
+                  </p>
+                )}
+                <Button
+                  onClick={() => setShowRegClosed(false)}
+                  className="mt-4 w-full md:w-auto"
+                >
+                  知道了
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

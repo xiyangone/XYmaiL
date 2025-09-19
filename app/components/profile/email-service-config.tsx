@@ -64,6 +64,29 @@ export function EmailServiceConfig() {
     }
   };
 
+  const handleValidate = async () => {
+    setLoading(true);
+    try {
+      if (!config.apiKey) throw new Error("请先填写 Resend API Key");
+      const res = await fetch("/api/config/email-service/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: config.apiKey }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error || "验证失败");
+      toast({ title: "验证成功", description: "API Key 有效" });
+    } catch (error) {
+      toast({
+        title: "验证失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -126,6 +149,11 @@ export function EmailServiceConfig() {
               <Label htmlFor="enabled" className="text-sm font-medium">
                 启用 Resend 发件服务
               </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                请填入 Resend 后台生成的 API Key（建议使用 Restricted
+                Key，仅授予发送权限）
+              </p>
+
               <p className="text-xs text-muted-foreground">
                 开启后将使用 Resend 发送邮件
               </p>
@@ -173,6 +201,18 @@ export function EmailServiceConfig() {
                     ) : (
                       <Eye className="h-4 w-4" />
                     )}
+                  </Button>
+                </div>
+
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleValidate}
+                    disabled={!config.apiKey || loading}
+                  >
+                    验证 API Key
                   </Button>
                 </div>
               </div>
