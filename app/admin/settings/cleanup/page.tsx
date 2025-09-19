@@ -94,7 +94,7 @@ export default function CleanupSettingsPage() {
     <div className="p-4 sm:p-6 max-w-3xl">
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-semibold">清理与到期策略</h1>
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
+        <Button variant="ghost" size="sm" onClick={() => router.back()}>
           返回
         </Button>
       </div>
@@ -107,6 +107,21 @@ export default function CleanupSettingsPage() {
         <div>加载中…</div>
       ) : (
         <div className="space-y-6">
+          <section className="rounded-md bg-muted/30 border p-3 text-xs text-muted-foreground space-y-1">
+            <div>自动清理说明：</div>
+            <ul className="list-disc list-inside space-y-1">
+              <li>
+                清理任务由 Cloudflare Scheduled Triggers 定时触发（通常每 24
+                小时一次），也可手动调用 /api/cleanup/temp-accounts。
+              </li>
+              <li>关闭某项开关后，对应资源将不再被自动清理。</li>
+              <li>“清理过期邮箱”会级联删除该邮箱下的所有消息，请谨慎开启。</li>
+              <li>
+                卡密过期规则受“卡密默认有效期（天）”与生成时的自定义参数共同影响。
+              </li>
+            </ul>
+          </section>
+
           <section className="space-y-2">
             <h2 className="text-lg font-medium">卡密与邮箱清理开关</h2>
             <div className="flex items-center justify-between border rounded p-3">
@@ -141,23 +156,6 @@ export default function CleanupSettingsPage() {
                 <div className="text-xs text-muted-foreground">
                   删除 emails 表中过期记录；会级联删除该邮箱下的消息。
                 </div>
-              </div>
-
-              <div className="rounded-md bg-muted/30 border p-3 text-xs text-muted-foreground space-y-1 mt-3">
-                <div>自动清理说明：</div>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>
-                    清理任务由 Cloudflare Scheduled Triggers 定时触发（通常每 24
-                    小时一次），也可手动调用 /api/cleanup/temp-accounts。
-                  </li>
-                  <li>关闭某项开关后，对应资源将不再被自动清理。</li>
-                  <li>
-                    “清理过期邮箱”会级联删除该邮箱下的所有消息，请谨慎开启。
-                  </li>
-                  <li>
-                    卡密过期规则受“卡密默认有效期（天）”与生成时的自定义参数共同影响。
-                  </li>
-                </ul>
               </div>
 
               <Switch

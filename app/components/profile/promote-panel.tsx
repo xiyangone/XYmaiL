@@ -147,13 +147,7 @@ export function PromotePanel() {
         </div>
       </div>
 
-      <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          expanded
-            ? "opacity-100 max-h-[5000px] mt-2"
-            : "opacity-0 max-h-0 -mt-2 pointer-events-none"
-        }`}
-      >
+      {expanded && (
         <div className="space-y-4">
           <div className="flex gap-4">
             <div className="flex-1">
@@ -207,7 +201,7 @@ export function PromotePanel() {
             )}
           </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
