@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Gem, Sword, User2, Loader2, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ROLES, Role } from "@/lib/permissions";
 import {
@@ -147,60 +147,60 @@ export function PromotePanel() {
       </div>
 
       {expanded && (
-      <div className="space-y-4">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <Input
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="输入用户名或邮箱"
-            />
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="输入用户名或邮箱"
+              />
+            </div>
+            <Select
+              value={targetRole}
+              onValueChange={(value) =>
+                setTargetRole(value as RoleWithoutEmperor)
+              }
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ROLES.DUKE}>
+                  <div className="flex items-center gap-2">
+                    <Gem className="w-4 h-4" />
+                    公爵
+                  </div>
+                </SelectItem>
+                <SelectItem value={ROLES.KNIGHT}>
+                  <div className="flex items-center gap-2">
+                    <Sword className="w-4 h-4" />
+                    骑士
+                  </div>
+                </SelectItem>
+                <SelectItem value={ROLES.CIVILIAN}>
+                  <div className="flex items-center gap-2">
+                    <User2 className="w-4 h-4" />
+                    平民
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select
-            value={targetRole}
-            onValueChange={(value) =>
-              setTargetRole(value as RoleWithoutEmperor)
-            }
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ROLES.DUKE}>
-                <div className="flex items-center gap-2">
-                  <Gem className="w-4 h-4" />
-                  公爵
-                </div>
-              </SelectItem>
-              <SelectItem value={ROLES.KNIGHT}>
-                <div className="flex items-center gap-2">
-                  <Sword className="w-4 h-4" />
-                  骑士
-                </div>
-              </SelectItem>
-              <SelectItem value={ROLES.CIVILIAN}>
-                <div className="flex items-center gap-2">
-                  <User2 className="w-4 h-4" />
-                  平民
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
-        <Button
-          onClick={handleAction}
-          disabled={loading || !searchText.trim()}
-          className="w-full"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            `设为${roleNames[targetRole]}`
-          )}
-        </Button>
-      )
-      </div>
+          <Button
+            onClick={handleAction}
+            disabled={loading || !searchText.trim()}
+            className="w-full"
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              `设为${roleNames[targetRole]}`
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
