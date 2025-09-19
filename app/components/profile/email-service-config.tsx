@@ -187,7 +187,7 @@ export function EmailServiceConfig() {
                         apiKey: e.target.value,
                       }))
                     }
-                    placeholder="输入 Resend API Key"
+                    placeholder="re_****************（请粘贴 Resend 后台生成的 Key）"
                   />
                   <Button
                     type="button"
@@ -203,6 +203,10 @@ export function EmailServiceConfig() {
                     )}
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  注意：请粘贴具体的 Resend API Key（通常以 re_
+                  开头），不是输入“Restricted Key”四个字。
+                </p>
 
                 <div className="mt-2">
                   <Button

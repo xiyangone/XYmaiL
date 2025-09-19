@@ -189,6 +189,7 @@ export function WebsiteConfigPanel() {
             </div>
           </div>
 
+          {/* 最大邮箱数量（单行） */}
           <div className="flex items-center gap-4">
             <span className="text-sm">最大邮箱数量:</span>
             <div className="flex-1">
@@ -201,19 +202,20 @@ export function WebsiteConfigPanel() {
                 placeholder={`默认为 ${EMAIL_CONFIG.MAX_ACTIVE_EMAILS}`}
               />
             </div>
+          </div>
 
-            <div className="flex items-center justify-between basis-full mt-3 pt-3 border-t">
-              <div className="space-y-0.5">
-                <Label>允许新用户注册</Label>
-                <div className="text-sm text-muted-foreground">
-                  关闭后，/api/auth/register 将拒绝新注册
-                </div>
+          {/* 允许新用户注册（独立一行） */}
+          <div className="flex items-center justify-between border rounded p-3 mt-4">
+            <div className="space-y-0.5">
+              <Label>允许新用户注册</Label>
+              <div className="text-sm text-muted-foreground">
+                关闭后，/api/auth/register 将拒绝新注册
               </div>
-              <Switch
-                checked={registrationEnabled}
-                onCheckedChange={setRegistrationEnabled}
-              />
             </div>
+            <Switch
+              checked={registrationEnabled}
+              onCheckedChange={setRegistrationEnabled}
+            />
           </div>
 
           {/* 新增：清理策略与默认天数 */}

@@ -110,6 +110,11 @@ export default function CleanupSettingsPage() {
                 清理任务由 Cloudflare Scheduled Triggers 定时触发（通常每 24
                 小时一次），也可手动调用 /api/cleanup/temp-accounts。
               </li>
+              <li>
+                当前定时规则（wrangler.temp-cleanup.json）：*/30 * * * *（每 30
+                分钟一次）。
+              </li>
+
               <li>关闭某项开关后，对应资源将不再被自动清理。</li>
               <li>“清理过期邮箱”会级联删除该邮箱下的所有消息，请谨慎开启。</li>
               <li>
