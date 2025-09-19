@@ -119,7 +119,13 @@ export function EmailServiceConfig() {
           <h2 className="text-lg font-semibold">Resend 发件服务配置</h2>
         </div>
       </div>
-      {expanded && (
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          expanded
+            ? "opacity-100 max-h-[5000px] mt-2"
+            : "opacity-0 max-h-0 -mt-2 pointer-events-none"
+        }`}
+      >
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -317,7 +323,7 @@ export function EmailServiceConfig() {
             {loading ? "保存中..." : "保存配置"}
           </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

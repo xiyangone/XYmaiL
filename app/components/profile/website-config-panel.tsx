@@ -144,7 +144,13 @@ export function WebsiteConfigPanel() {
         </div>
       </div>
 
-      {expanded && (
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          expanded
+            ? "opacity-100 max-h-[5000px] mt-2"
+            : "opacity-0 max-h-0 -mt-2 pointer-events-none"
+        }`}
+      >
         <div className="space-y-4">
           <div className="flex items-center gap-4">
             <span className="text-sm">新用户默认角色:</span>
@@ -241,7 +247,7 @@ export function WebsiteConfigPanel() {
             保存
           </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
