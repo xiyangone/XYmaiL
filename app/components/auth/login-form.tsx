@@ -15,7 +15,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Github, Loader2, KeyRound, User2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useConfig } from "@/hooks/use-config";
 
 interface FormErrors {
   username?: string;
@@ -31,7 +30,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [showRegClosed, setShowRegClosed] = useState(false);
-  const { config } = useConfig();
+  const [adminContact, setAdminContact] = useState("");
 
   const { toast } = useToast();
 
@@ -111,6 +110,20 @@ export function LoginForm() {
       }
 
       if (!response.ok) {
+        if (response.status === 403) {
+          setShowRegClosed(true);
+          // 懒加载管理员联系方式，避免登录页无谓请求
+          try {
+            const cfgRes = await fetch("/api/config");
+            if (cfgRes.ok) {
+              const d: any = await cfgRes.json();
+              setAdminContact(d?.adminContact || "");
+            }
+          } catch {}
+          setLoading(false);
+          return;
+        }
+
         toast({
           title: "注册失败",
           description: data.error || "请稍后重试",
@@ -458,9 +471,9 @@ export function LoginForm() {
                 <p className="text-sm md:text-base text-muted-foreground">
                   当前站点已暂停新用户注册
                 </p>
-                {config?.adminContact && (
+                {adminContact && (
                   <p className="text-sm md:text-base text-muted-foreground">
-                    管理员联系方式：{config.adminContact}
+                    管理员联系方式：{adminContact}
                   </p>
                 )}
                 <Button

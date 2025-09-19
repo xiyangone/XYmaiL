@@ -202,7 +202,7 @@ export function WebsiteConfigPanel() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between basis-full mt-3 pt-3 border-t">
               <div className="space-y-0.5">
                 <Label>允许新用户注册</Label>
                 <div className="text-sm text-muted-foreground">

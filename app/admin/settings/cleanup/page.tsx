@@ -98,13 +98,6 @@ export default function CleanupSettingsPage() {
           返回
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        说明：以下开关为“自动清理”策略，保存后立即生效；定时清理由 Cloudflare
-        Pages/Workers 的 Scheduled Triggers 调用 /api/cleanup/temp-accounts。
-        当前定时规则来自 wrangler.temp-cleanup.json 的 crons 配置：*/30 * * *
-        *（每 30 分钟）。本页仅用于展示说明，不在此处修改
-        wrangler.temp-cleanup.json。
-      </p>
 
       {loading ? (
         <div>加载中…</div>
