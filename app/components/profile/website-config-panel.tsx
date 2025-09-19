@@ -115,8 +115,16 @@ export function WebsiteConfigPanel() {
   };
 
   return (
-    <div className="bg-background rounded-lg border-2 border-primary/20 p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div
+      className={`bg-background rounded-lg border-2 border-primary/20 ${
+        expanded ? "p-6" : "p-3"
+      }`}
+    >
+      <div
+        className={`flex items-center justify-between ${
+          expanded ? "mb-6" : "mb-2"
+        }`}
+      >
         <div
           className="flex items-center gap-2 cursor-pointer select-none"
           onClick={() => setExpanded((v) => !v)}
@@ -132,13 +140,6 @@ export function WebsiteConfigPanel() {
             onClick={() => router.push("/admin/settings/cleanup")}
           >
             清理与到期策略
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpanded((v) => !v)}
-          >
-            {expanded ? "收起" : "展开"}
           </Button>
         </div>
       </div>

@@ -20,11 +20,6 @@ export default function CleanupSettingsPage() {
   const [cleanupExpiredEmails, setCleanupExpiredEmails] = useState(true);
   const [cleanupExpiredUnused, setCleanupExpiredUnused] = useState(true);
 
-  // 可选注释（存入 COMMENT__ 前缀 KV）
-  const [commentUsedExpired, setCommentUsedExpired] = useState("");
-  const [commentExpiredUnused, setCommentExpiredUnused] = useState("");
-  const [commentExpiredEmails, setCommentExpiredEmails] = useState("");
-
   useEffect(() => {
     const run = async () => {
       setLoading(true);
@@ -50,13 +45,6 @@ export default function CleanupSettingsPage() {
           (data.cleanupDeleteExpiredUnusedCardKeys ?? "true").toLowerCase() ===
             "true"
         );
-        setCommentUsedExpired(
-          data.commentCleanupDeleteUsedExpiredCardKeys || ""
-        );
-        setCommentExpiredUnused(
-          data.commentCleanupDeleteExpiredUnusedCardKeys || ""
-        );
-        setCommentExpiredEmails(data.commentCleanupDeleteExpiredEmails || "");
       } catch (e) {
         setError(e instanceof Error ? e.message : "获取配置失败");
       } finally {
@@ -83,9 +71,6 @@ export default function CleanupSettingsPage() {
           cleanupDeleteExpiredEmails: cleanupExpiredEmails,
           cleanupDeleteExpiredUnusedCardKeys: cleanupExpiredUnused,
           cardKeyDefaultDays,
-          commentCleanupDeleteUsedExpiredCardKeys: commentUsedExpired,
-          commentCleanupDeleteExpiredUnusedCardKeys: commentExpiredUnused,
-          commentCleanupDeleteExpiredEmails: commentExpiredEmails,
         }),
       });
       if (!res.ok) {
@@ -127,15 +112,6 @@ export default function CleanupSettingsPage() {
                 onChange={(e) => setCleanupUsedExpired(e.target.checked)}
               />
             </div>
-            <div className="mt-2">
-              <textarea
-                value={commentUsedExpired}
-                onChange={(e) => setCommentUsedExpired(e.target.value)}
-                placeholder="此开关的备注说明（可选，不写即为空）"
-                className="w-full border rounded p-2 text-sm"
-                rows={2}
-              />
-            </div>
 
             <div className="flex items-center justify-between border rounded p-3 mt-4">
               <div>
@@ -148,15 +124,6 @@ export default function CleanupSettingsPage() {
                 type="checkbox"
                 checked={cleanupExpiredUnused}
                 onChange={(e) => setCleanupExpiredUnused(e.target.checked)}
-              />
-            </div>
-            <div className="mt-2">
-              <textarea
-                value={commentExpiredUnused}
-                onChange={(e) => setCommentExpiredUnused(e.target.value)}
-                placeholder="此开关的备注说明（可选，不写即为空）"
-                className="w-full border rounded p-2 text-sm"
-                rows={2}
               />
             </div>
 
@@ -172,68 +139,6 @@ export default function CleanupSettingsPage() {
                 checked={cleanupExpiredEmails}
                 onChange={(e) => setCleanupExpiredEmails(e.target.checked)}
               />
-            </div>
-            <div className="mt-2">
-              <textarea
-                value={commentExpiredEmails}
-                onChange={(e) => setCommentExpiredEmails(e.target.value)}
-                placeholder="此开关的备注说明（可选，不写即为空）"
-                className="w-full border rounded p-2 text-sm"
-                rows={2}
-              />
-            </div>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-lg font-medium">
-              只读信息（保存时会原样带回）
-            </h2>
-            <div className="grid grid-cols-1 gap-3">
-              <label className="text-sm">
-                默认角色（只读）：
-                <input
-                  value={defaultRole}
-                  onChange={(e) => setDefaultRole(e.target.value)}
-                  className="ml-2 border rounded px-2 py-1"
-                  readOnly
-                />
-              </label>
-              <label className="text-sm">
-                邮箱域名（只读）：
-                <input
-                  value={emailDomains}
-                  onChange={(e) => setEmailDomains(e.target.value)}
-                  className="ml-2 border rounded px-2 py-1 w-full"
-                  readOnly
-                />
-              </label>
-              <label className="text-sm">
-                管理员联系方式（只读）：
-                <input
-                  value={adminContact}
-                  onChange={(e) => setAdminContact(e.target.value)}
-                  className="ml-2 border rounded px-2 py-1 w-full"
-                  readOnly
-                />
-              </label>
-              <label className="text-sm">
-                每用户邮箱上限（只读）：
-                <input
-                  value={maxEmails}
-                  onChange={(e) => setMaxEmails(e.target.value)}
-                  className="ml-2 border rounded px-2 py-1"
-                  readOnly
-                />
-              </label>
-              <label className="text-sm">
-                卡密默认有效期-天（只读）：
-                <input
-                  value={cardKeyDefaultDays}
-                  onChange={(e) => setCardKeyDefaultDays(e.target.value)}
-                  className="ml-2 border rounded px-2 py-1"
-                  readOnly
-                />
-              </label>
             </div>
           </section>
 

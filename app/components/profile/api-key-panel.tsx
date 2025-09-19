@@ -173,20 +173,25 @@ export function ApiKeyPanel() {
   };
 
   return (
-    <div className="bg-background rounded-lg border-2 border-primary/20 p-6 space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+    <div
+      className={`bg-background rounded-lg border-2 border-primary/20 ${
+        expanded ? "p-6" : "p-3"
+      } space-y-6`}
+    >
+      <div
+        className={`flex items-center justify-between ${
+          expanded ? "mb-6" : "mb-2"
+        }`}
+      >
+        <div
+          className="flex items-center gap-2 cursor-pointer select-none"
+          onClick={() => setExpanded((v) => !v)}
+          title={expanded ? "收起" : "展开"}
+        >
           <Key className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">API Keys</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpanded((v) => !v)}
-          >
-            {expanded ? "收起" : "展开"}
-          </Button>
           {canManageApiKey && (
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
