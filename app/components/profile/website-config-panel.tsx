@@ -34,6 +34,21 @@ export function WebsiteConfigPanel() {
   const [expanded, setExpanded] = useState(false);
   const router = useRouter();
 
+  // 读取本地展开状态
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("profile:website:expanded");
+      if (v === "1") setExpanded(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    // 写入本地展开状态
+    try {
+      localStorage.setItem("profile:website:expanded", expanded ? "1" : "0");
+    } catch {}
+  }, [expanded]);
+
   useEffect(() => {
     fetchConfig();
   }, []);

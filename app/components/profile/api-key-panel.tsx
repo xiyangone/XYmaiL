@@ -50,6 +50,19 @@ export function ApiKeyPanel() {
   const [showExamples, setShowExamples] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  // 读取/持久化展开状态
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("profile:apiKeys:expanded");
+      if (v === "1") setExpanded(true);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("profile:apiKeys:expanded", expanded ? "1" : "0");
+    } catch {}
+  }, [expanded]);
+
   const { checkPermission } = useRolePermission();
   const canManageApiKey = checkPermission(PERMISSIONS.MANAGE_API_KEY);
 

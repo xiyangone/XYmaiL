@@ -32,6 +32,23 @@ export function EmailServiceConfig() {
   const [expanded, setExpanded] = useState(false);
   const { toast } = useToast();
 
+  // 读取/持久化展开状态
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("profile:emailService:expanded");
+      if (v === "1") setExpanded(true);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "profile:emailService:expanded",
+        expanded ? "1" : "0"
+      );
+    } catch {}
+  }, [expanded]);
+
+
   useEffect(() => {
     fetchConfig();
   }, []);
