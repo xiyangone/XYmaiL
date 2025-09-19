@@ -628,22 +628,28 @@ XiYang Mail 支持使用临时邮箱发送邮件，基于 [Resend](https://resen
 1. **获取 Resend API Key**
 
    - 访问 [Resend 官网](https://resend.com/) 注册账号
-   - 在控制台中创建 API Key
-   - 复制 API Key 供后续配置使用
+   - 在控制台创建 API Key，并复制一个以 `re_` 开头的 Key
+   - 复制 Key 备用（稍后粘贴到系统中）
 
-2. **配置发件服务**
+2. **验证并启用发件域名（必做）**
+
+   - 打开 https://resend.com/domains 添加你的发件域名（如 `xiyangone.online`）
+   - 按指引在 DNS（Cloudflare）添加/校验 SPF 与 DKIM 记录
+   - 等待状态变为 Verified；未验证将导致错误：`The domain is not verified`
+
+3. **配置发件服务**
 
    - 皇帝角色登录 XiYang Mail
    - 进入个人中心页面
    - 在"Resend 发件服务配置"部分：
      - 启用发件服务开关
-     - 填入 Resend API Key
+     - 粘贴以 `re_` 开头的 Resend API Key
      - 设置公爵和骑士的每日发件限制（可选）
    - 点击保存配置
 
-3. **验证配置**
-   - 配置保存后，有权限的用户在邮箱列表页面会看到"发送邮件"按钮
-   - 点击按钮可以打开发件对话框进行测试
+4. **验证配置**
+   - 点击“验证 API Key”按钮，看到成功提示即表示 Key 可用
+   - 邮箱列表页会出现“发送邮件”按钮；若仍提示 `The domain is not verified`，回到步骤 2 完成域名验证
 
 ### 使用发件功能
 
